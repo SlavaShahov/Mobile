@@ -10,7 +10,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Скорость игры -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,7 +33,6 @@
             android:textAlignment="center"
             android:layout_marginBottom="16dp"/>
 
-        <!-- Макс. тараканов -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -58,7 +56,6 @@
             android:textAlignment="center"
             android:layout_marginBottom="16dp"/>
 
-        <!-- Интервал бонусов -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -82,7 +79,6 @@
             android:textAlignment="center"
             android:layout_marginBottom="16dp"/>
 
-        <!-- Длительность раунда -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -106,13 +102,22 @@
             android:textAlignment="center"
             android:layout_marginBottom="24dp"/>
 
-        <!-- Кнопка сохранения -->
         <Button
             android:id="@+id/btnSaveSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Сохранить настройки"
-            android:layout_gravity="center"/>
+            android:layout_gravity="center"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btnStartGame"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Начать игру"
+            android:background="@android:color/holo_green_dark"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"/>
 
     </LinearLayout>
 </ScrollView>

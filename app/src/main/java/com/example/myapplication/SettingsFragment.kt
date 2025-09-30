@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 
 class SettingsFragment : Fragment() {
@@ -20,6 +22,7 @@ class SettingsFragment : Fragment() {
     private lateinit var sbRoundDuration: SeekBar
     private lateinit var tvRoundDuration: TextView
     private lateinit var btnSaveSettings: Button
+    private lateinit var btnStartGame: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,7 +32,7 @@ class SettingsFragment : Fragment() {
 
         initViews(view)
         setupSeekBars()
-        setupSaveButton()
+        setupButtons()
 
         return view
     }
@@ -44,6 +47,7 @@ class SettingsFragment : Fragment() {
         sbRoundDuration = view.findViewById(R.id.sbRoundDuration)
         tvRoundDuration = view.findViewById(R.id.tvRoundDuration)
         btnSaveSettings = view.findViewById(R.id.btnSaveSettings)
+        btnStartGame = view.findViewById(R.id.btnStartGame)
     }
 
     private fun setupSeekBars() {
@@ -61,13 +65,16 @@ class SettingsFragment : Fragment() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-        // Инициализируем начальные значения
         seekBar.progress = seekBar.progress
     }
 
-    private fun setupSaveButton() {
+    private fun setupButtons() {
         btnSaveSettings.setOnClickListener {
             saveSettings()
+        }
+
+        btnStartGame.setOnClickListener {
+            startGameWithSettings()
         }
     }
 
@@ -78,7 +85,22 @@ class SettingsFragment : Fragment() {
             bonusInterval = sbBonusInterval.progress,
             roundDuration = sbRoundDuration.progress
         )
-        // Сохраняем настройки (можно использовать SharedPreferences)
+        Toast.makeText(requireContext(), "Настройки сохранены", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun startGameWithSettings() {
+        val gameSpeed = sbGameSpeed.progress.coerceAtLeast(1)
+        val maxCockroaches = sbMaxCockroaches.progress.coerceAtLeast(1)
+        val bonusInterval = sbBonusInterval.progress.coerceAtLeast(5)
+        val roundDuration = sbRoundDuration.progress.coerceAtLeast(30)
+
+        val intent = Intent(requireContext(), GameActivity::class.java).apply {
+            putExtra(GameActivity.EXTRA_GAME_SPEED, gameSpeed)
+            putExtra(GameActivity.EXTRA_MAX_COCKROACHES, maxCockroaches)
+            putExtra(GameActivity.EXTRA_BONUS_INTERVAL, bonusInterval)
+            putExtra(GameActivity.EXTRA_ROUND_DURATION, roundDuration)
+        }
+        startActivity(intent)
     }
 }
 
