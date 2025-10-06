@@ -88,7 +88,7 @@ class GameActivity : AppCompatActivity() {
                     InsectType.REGULAR -> 10
                     InsectType.FAST -> 15
                     InsectType.RARE -> 100
-                    InsectType.BONUS -> 50
+                    InsectType.BONUS -> 50 // Очки за сбор бонуса
                     InsectType.PENALTY -> -15
                 }
                 score += points
@@ -103,7 +103,17 @@ class GameActivity : AppCompatActivity() {
                         }
                     }
                     InsectType.FAST -> showToast("Быстрый жук! +15 очков")
+                    InsectType.BONUS -> showToast("Гироскоп-бонус активирован! +50 очков")
                     else -> {}
+                }
+            }
+
+            // Добавляем обработчик гироскоп-бонуса
+            gameView.setOnTiltBonusListener { isActive ->
+                if (isActive) {
+                    showToast("Наклоняйте телефон - жуки летят в сторону наклона!")
+                } else {
+                    showToast("Гироскоп-режим завершен")
                 }
             }
 
