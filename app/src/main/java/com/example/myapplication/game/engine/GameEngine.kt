@@ -1,3 +1,4 @@
+// game/engine/GameEngine.kt
 package com.example.myapplication.game.engine
 
 import com.example.myapplication.game.engine.InsectFactory
@@ -5,6 +6,7 @@ import com.example.myapplication.domain.model.GameSettings
 import com.example.myapplication.domain.model.Insect
 import com.example.myapplication.domain.model.InsectType
 import com.example.myapplication.game.sound.SoundManager
+import kotlin.math.ceil
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -15,6 +17,7 @@ class GameEngine(
     private val insects = mutableListOf<Insect>()
     private var lastUpdateTime = 0L
     private var lastBonusTime = 0L
+    private var lastGoldBugTime = 0L
     private var isGameRunning = false
 
     // Гироскоп-бонус
@@ -34,7 +37,14 @@ class GameEngine(
     private var currentTiltX = 0f
     private var currentTiltY = 0f
 
+    // Курс золота
+    private var currentGoldRate: Double = 5000.0
+    private var goldBugPoints: Int = 50
+
     var onTiltBonusChanged: ((Boolean) -> Unit)? = null
+    var onGoldRateUpdated: ((Double, Int) -> Unit)? = null
+
+
 
     fun setScreenSize(width: Int, height: Int) {
         this.screenWidth = width.coerceAtLeast(1)
@@ -45,10 +55,17 @@ class GameEngine(
         this.settings = newSettings
     }
 
+    fun updateGoldRate(rate: Double) {
+        this.currentGoldRate = rate
+        this.goldBugPoints = ceil(rate / 100).toInt().coerceAtLeast(1)
+        onGoldRateUpdated?.invoke(rate, goldBugPoints)
+    }
+
     fun startGame() {
         isGameRunning = true
         lastUpdateTime = System.currentTimeMillis()
         lastBonusTime = System.currentTimeMillis()
+        lastGoldBugTime = System.currentTimeMillis()
         insects.clear()
     }
 
@@ -92,6 +109,12 @@ class GameEngine(
                 spawnInsect(InsectType.PENALTY)
             }
             lastBonusTime = currentTime
+        }
+
+        // Добавляем золотого жука
+        if (shouldSpawnGoldBug(currentTime)) {
+            spawnGoldBug()
+            lastGoldBugTime = currentTime
         }
 
         // Обновляем позиции с учетом наклона
@@ -164,6 +187,11 @@ class GameEngine(
         insects.add(insect)
     }
 
+    private fun spawnGoldBug() {
+        val insect = InsectFactory.createGoldBug(screenWidth, screenHeight)
+        insects.add(insect)
+    }
+
     fun getInsects(): List<Insect> {
         return insects.toList()
     }
@@ -198,6 +226,10 @@ class GameEngine(
         return currentTime - lastBonusTime > adjustedInterval
     }
 
+    private fun shouldSpawnGoldBug(currentTime: Long): Boolean {
+        return currentTime - lastGoldBugTime > 20000L // 20 секунд
+    }
+
     private fun removeOutOfBoundsInsects() {
         insects.removeAll { insect ->
             insect.x < -insect.bitmap.width ||
@@ -209,4 +241,5 @@ class GameEngine(
 
     fun isTiltBonusActive(): Boolean = isTiltBonusActive
     fun getTiltBonusTimeLeft(): Float = ((tiltBonusEndTime - System.currentTimeMillis()) / 1000f).coerceAtLeast(0f)
+    fun getGoldBugPoints(): Int = goldBugPoints
 }

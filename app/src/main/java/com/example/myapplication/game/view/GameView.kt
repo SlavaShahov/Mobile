@@ -39,6 +39,7 @@ class GameView @JvmOverloads constructor(
     private var rareBugBitmap: Bitmap? = null
     private var bonusBitmap: Bitmap? = null
     private var penaltyBitmap: Bitmap? = null
+    private var goldBugBitmap: Bitmap? = null
     private var backgroundBitmap: Bitmap? = null
 
     private var onInsectClickListener: ((Insect) -> Unit)? = null
@@ -81,6 +82,10 @@ class GameView @JvmOverloads constructor(
         gameEngine.onTiltBonusChanged = { isActive ->
             onTiltBonusListener?.invoke(isActive)
         }
+
+        gameEngine.onGoldRateUpdated = { rate, points ->
+            Log.d(TAG, "Gold rate updated in GameView: $rate, points: $points")
+        }
     }
 
     private fun setupSensors() {
@@ -103,6 +108,7 @@ class GameView @JvmOverloads constructor(
             rareBugBitmap = loadBitmapFromResource(R.drawable.bug_rare, 140)
             bonusBitmap = loadBitmapFromResource(R.drawable.bonus, 80)
             penaltyBitmap = loadBitmapFromResource(R.drawable.penalty, 80)
+            goldBugBitmap = loadBitmapFromResource(R.drawable.golden_bug, 100)
 
             // Передаем bitmap'ы в InsectFactory
             regularBugBitmap?.let { InsectFactory.regularBugBitmap = it }
@@ -110,6 +116,7 @@ class GameView @JvmOverloads constructor(
             rareBugBitmap?.let { InsectFactory.rareBugBitmap = it }
             bonusBitmap?.let { InsectFactory.bonusBitmap = it }
             penaltyBitmap?.let { InsectFactory.penaltyBitmap = it }
+            goldBugBitmap?.let { InsectFactory.goldBugBitmap = it }
 
             Log.d(TAG, "All bitmaps loaded successfully")
 
@@ -182,6 +189,14 @@ class GameView @JvmOverloads constructor(
 
     fun setOnTiltBonusListener(listener: (Boolean) -> Unit) {
         this.onTiltBonusListener = listener
+    }
+
+    fun updateGoldRate(rate: Double) {
+        gameEngine.updateGoldRate(rate)
+    }
+
+    fun getGoldBugPoints(): Int {
+        return gameEngine.getGoldBugPoints()
     }
 
     fun startGame() {
@@ -325,6 +340,10 @@ class GameView @JvmOverloads constructor(
             InsectType.BONUS -> {
                 onInsectClickListener?.invoke(insect)
                 gameEngine.activateTiltBonus()
+                gameEngine.removeInsect(insect)
+            }
+            InsectType.GOLDEN -> {
+                onInsectClickListener?.invoke(insect)
                 gameEngine.removeInsect(insect)
             }
             else -> {

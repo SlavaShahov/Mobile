@@ -1,6 +1,6 @@
 package com.example.myapplication.domain.model
 
-enum class InsectType { REGULAR, FAST, RARE, BONUS, PENALTY }
+enum class InsectType { REGULAR, FAST, RARE, BONUS, PENALTY, GOLDEN }
 
 data class Insect(
     val type: InsectType,

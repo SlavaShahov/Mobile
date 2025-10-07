@@ -1,3 +1,4 @@
+// game/engine/InsectFactory.kt
 package com.example.myapplication.game.engine
 
 import com.example.myapplication.domain.model.Insect
@@ -13,6 +14,7 @@ object InsectFactory {
     var rareBugBitmap: android.graphics.Bitmap? = null
     var bonusBitmap: android.graphics.Bitmap? = null
     var penaltyBitmap: android.graphics.Bitmap? = null
+    var goldBugBitmap: android.graphics.Bitmap? = null
 
     fun createInsect(
         type: InsectType,
@@ -27,6 +29,7 @@ object InsectFactory {
             InsectType.RARE -> rareBugBitmap
             InsectType.BONUS -> bonusBitmap
             InsectType.PENALTY -> penaltyBitmap
+            InsectType.GOLDEN -> goldBugBitmap
         } ?: createFallbackBitmap(type)
 
         val side = Random.nextInt(4)
@@ -43,6 +46,7 @@ object InsectFactory {
             InsectType.RARE -> Random.nextInt(100, 170).toFloat()
             InsectType.BONUS -> Random.nextInt(80, 120).toFloat()
             InsectType.PENALTY -> Random.nextInt(140, 220).toFloat()
+            InsectType.GOLDEN -> Random.nextInt(100, 180).toFloat()
         }
 
         val health = when (type) {
@@ -60,6 +64,10 @@ object InsectFactory {
             health = health,
             maxHealth = health
         )
+    }
+
+    fun createGoldBug(screenWidth: Int, screenHeight: Int, bitmap: android.graphics.Bitmap? = null): Insect {
+        return createInsect(InsectType.GOLDEN, screenWidth, screenHeight, bitmap)
     }
 
     private fun calculateStartPosition(
@@ -99,6 +107,7 @@ object InsectFactory {
             InsectType.RARE -> 140
             InsectType.BONUS -> 80
             InsectType.PENALTY -> 80
+            InsectType.GOLDEN -> 100
         }
 
         val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
@@ -122,6 +131,7 @@ object InsectFactory {
             InsectType.RARE -> android.graphics.Color.YELLOW
             InsectType.BONUS -> android.graphics.Color.CYAN
             InsectType.PENALTY -> android.graphics.Color.RED
+            InsectType.GOLDEN -> android.graphics.Color.argb(255, 255, 215, 0) // золотой
         }
     }
 }

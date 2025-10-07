@@ -10,12 +10,24 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.R
+import com.example.myapplication.data.network.CbrApiService
+import com.example.myapplication.data.repository.GoldRateRepository
 import com.example.myapplication.domain.model.InsectType
 import com.example.myapplication.game.view.GameView
+import com.example.myapplication.game.view.GoldRateWidget
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.simplexml.SimpleXmlConverterFactory
+import java.util.concurrent.TimeUnit
 
 class GameActivity : AppCompatActivity() {
 
     private lateinit var gameView: GameView
+    private lateinit var goldRateWidget: GoldRateWidget
     private lateinit var tvScore: TextView
     private lateinit var tvTime: TextView
     private lateinit var btnPause: Button
@@ -31,6 +43,12 @@ class GameActivity : AppCompatActivity() {
     private var maxCockroaches = 10
     private var bonusInterval = 30
     private var roundDuration = 120
+    private var currentGoldRate: Double = 5000.0
+
+    // Курс золота
+    private lateinit var goldRateRepository: GoldRateRepository
+    private var goldRateUpdateHandler = Handler(Looper.getMainLooper())
+    private val goldRateUpdateInterval = 60000L // 1 минута
 
     companion object {
         const val TAG = "GameActivity"
@@ -47,9 +65,83 @@ class GameActivity : AppCompatActivity() {
         Log.d(TAG, "GameActivity onCreate")
 
         getSettingsFromIntent()
+        setupGoldRateService()
         initViews()
         setupGame()
         startGame()
+    }
+
+    private fun setupGoldRateService() {
+        try {
+            val loggingInterceptor = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+
+            val client = OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://www.cbr.ru/")
+                .client(client)
+                .addConverterFactory(SimpleXmlConverterFactory.create())
+                .build()
+
+            val apiService = retrofit.create(CbrApiService::class.java)
+            goldRateRepository = GoldRateRepository(apiService)
+
+            startGoldRateUpdates()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up gold rate service", e)
+            // Используем значение по умолчанию
+            goldRateRepository = GoldRateRepository(object : CbrApiService {
+                override suspend fun getGoldRates(dateFrom: String, dateTo: String)
+                        = com.example.myapplication.data.model.GoldRatesResponse()
+            })
+            startGoldRateUpdates()
+        }
+    }
+
+    private fun startGoldRateUpdates() {
+        val updateRunnable = object : Runnable {
+            override fun run() {
+                updateGoldRate()
+                goldRateUpdateHandler.postDelayed(this, goldRateUpdateInterval)
+            }
+        }
+        goldRateUpdateHandler.post(updateRunnable)
+
+        // Первоначальное обновление
+        updateGoldRate()
+    }
+
+    private fun updateGoldRate() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val rate = goldRateRepository.getCurrentGoldRate()
+                runOnUiThread {
+                    currentGoldRate = rate // Сохраняем текущий курс
+                    goldRateWidget.updateGoldRate(rate)
+                    gameView.updateGoldRate(rate)
+                    Log.d(TAG, "Gold rate updated: $rate, points per bug: ${(rate / 100).toInt()}")
+
+                    // Показываем текущий курс в тосте для тестирования
+                    showToast("Курс золота: ${rate.toInt()} руб. (${(rate / 100).toInt()} очков за жука)")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating gold rate", e)
+                runOnUiThread {
+                    val defaultRate = 5000.0
+                    currentGoldRate = defaultRate
+                    goldRateWidget.updateGoldRate(defaultRate)
+                    gameView.updateGoldRate(defaultRate)
+                    Log.d(TAG, "Using default gold rate: $defaultRate")
+                }
+            }
+        }
     }
 
     private fun getSettingsFromIntent() {
@@ -65,6 +157,7 @@ class GameActivity : AppCompatActivity() {
     private fun initViews() {
         try {
             gameView = findViewById(R.id.gameView)
+            goldRateWidget = findViewById(R.id.goldRateWidget)
             tvScore = findViewById(R.id.tvScore)
             tvTime = findViewById(R.id.tvTime)
             btnPause = findViewById(R.id.btnPause)
@@ -87,12 +180,14 @@ class GameActivity : AppCompatActivity() {
             gameView.setGameSettings(gameSpeed, maxCockroaches, bonusInterval)
 
             gameView.setOnInsectClickListener { insect ->
+                // Получаем актуальные очки из GameView
                 val points = when (insect.type) {
                     InsectType.REGULAR -> 10
                     InsectType.FAST -> 15
                     InsectType.RARE -> 100
                     InsectType.BONUS -> 50
                     InsectType.PENALTY -> -15
+                    InsectType.GOLDEN -> gameView.getGoldBugPoints() // Используем актуальное значение
                 }
                 score += points
                 updateScore()
@@ -107,6 +202,7 @@ class GameActivity : AppCompatActivity() {
                     }
                     InsectType.FAST -> showToast("Быстрый жук! +15 очков")
                     InsectType.BONUS -> showToast("Гироскоп-бонус активирован! +50 очков")
+                    InsectType.GOLDEN -> showToast("Золотой жук! +${points} очков (курс: ${currentGoldRate.toInt()} руб.)")
                     else -> {}
                 }
             }
@@ -190,6 +286,7 @@ class GameActivity : AppCompatActivity() {
         isPlaying = false
         stopTimer()
         gameView.endGame()
+        goldRateUpdateHandler.removeCallbacksAndMessages(null)
 
         val intent = Intent(this, GameResultActivity::class.java)
         intent.putExtra("score", score)
@@ -211,6 +308,7 @@ class GameActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         stopTimer()
+        goldRateUpdateHandler.removeCallbacksAndMessages(null)
         gameHandler.removeCallbacksAndMessages(null)
         gameView.endGame()
     }
