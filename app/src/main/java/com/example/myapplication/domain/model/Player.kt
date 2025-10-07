@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.domain.model
 
 data class Player(
     val fullName: String,

@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.ui.adapter
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import com.example.myapplication.R
+import com.example.myapplication.domain.model.Author
 
 class AuthorAdapter(context: Context, private val authors: List<Author>) :
     ArrayAdapter<Author>(context, R.layout.item_author, authors) {

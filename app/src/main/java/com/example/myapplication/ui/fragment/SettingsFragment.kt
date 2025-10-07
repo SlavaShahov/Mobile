@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.ui.fragment
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,6 +10,10 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.example.myapplication.R
+import com.example.myapplication.domain.model.GameSettings
+import com.example.myapplication.data.local.PreferencesManager
+import com.example.myapplication.ui.activity.GameActivity
 
 class SettingsFragment : Fragment() {
 
@@ -19,10 +23,12 @@ class SettingsFragment : Fragment() {
     private lateinit var tvMaxCockroaches: TextView
     private lateinit var sbBonusInterval: SeekBar
     private lateinit var tvBonusInterval: TextView
-    private lateinit var sbRoundDuration: SeekBar
+private lateinit var sbRoundDuration: SeekBar
     private lateinit var tvRoundDuration: TextView
     private lateinit var btnSaveSettings: Button
     private lateinit var btnStartGame: Button
+
+    private lateinit var preferencesManager: PreferencesManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -30,11 +36,29 @@ class SettingsFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_settings, container, false)
 
+        preferencesManager = PreferencesManager(requireContext())
         initViews(view)
         setupSeekBars()
         setupButtons()
+        setDefaultSettings()
+        //loadExistingSettings()
 
         return view
+    }
+
+    private fun setDefaultSettings() {
+        val defaultSettings = GameSettings() // Использует значения по умолчанию
+
+        sbGameSpeed.progress = defaultSettings.gameSpeed
+        sbMaxCockroaches.progress = defaultSettings.maxCockroaches
+        sbBonusInterval.progress = defaultSettings.bonusInterval
+        sbRoundDuration.progress = defaultSettings.roundDuration
+
+        // Обновляем текстовые поля
+        updateSeekBarText(sbGameSpeed, tvGameSpeed, "Скорость: ", "x")
+        updateSeekBarText(sbMaxCockroaches, tvMaxCockroaches, "Макс. тараканов: ", "")
+        updateSeekBarText(sbBonusInterval, tvBonusInterval, "Интервал бонусов: ", "сек")
+        updateSeekBarText(sbRoundDuration, tvRoundDuration, "Длительность раунда: ", "сек")
     }
 
     private fun initViews(view: View) {
@@ -50,6 +74,20 @@ class SettingsFragment : Fragment() {
         btnStartGame = view.findViewById(R.id.btnStartGame)
     }
 
+    private fun loadExistingSettings() {
+        val settings = preferencesManager.getGameSettings()
+        sbGameSpeed.progress = settings.gameSpeed
+        sbMaxCockroaches.progress = settings.maxCockroaches
+        sbBonusInterval.progress = settings.bonusInterval
+        sbRoundDuration.progress = settings.roundDuration
+
+        // Обновляем текстовые поля
+        updateSeekBarText(sbGameSpeed, tvGameSpeed, "Скорость: ", "x")
+        updateSeekBarText(sbMaxCockroaches, tvMaxCockroaches, "Макс. тараканов: ", "")
+        updateSeekBarText(sbBonusInterval, tvBonusInterval, "Интервал бонусов: ", "сек")
+        updateSeekBarText(sbRoundDuration, tvRoundDuration, "Длительность раунда: ", "сек")
+    }
+
     private fun setupSeekBars() {
         setupSeekBar(sbGameSpeed, tvGameSpeed, "Скорость: ", "x")
         setupSeekBar(sbMaxCockroaches, tvMaxCockroaches, "Макс. тараканов: ", "")
@@ -58,14 +96,21 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupSeekBar(seekBar: SeekBar, textView: TextView, prefix: String, suffix: String) {
+        updateSeekBarText(seekBar, textView, prefix, suffix)
+
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                textView.text = "$prefix$progress$suffix"
+                updateSeekBarText(seekBar, textView, prefix, suffix)
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-        seekBar.progress = seekBar.progress
+    }
+
+    private fun updateSeekBarText(seekBar: SeekBar?, textView: TextView, prefix: String, suffix: String) {
+        seekBar?.let {
+            textView.text = "$prefix${it.progress}$suffix"
+        }
     }
 
     private fun setupButtons() {
@@ -85,6 +130,8 @@ class SettingsFragment : Fragment() {
             bonusInterval = sbBonusInterval.progress,
             roundDuration = sbRoundDuration.progress
         )
+
+        preferencesManager.saveGameSettings(settings)
         Toast.makeText(requireContext(), "Настройки сохранены", Toast.LENGTH_SHORT).show()
     }
 
@@ -103,10 +150,3 @@ class SettingsFragment : Fragment() {
         startActivity(intent)
     }
 }
-
-data class GameSettings(
-    val gameSpeed: Int,
-    val maxCockroaches: Int,
-    val bonusInterval: Int,
-    val roundDuration: Int
-)

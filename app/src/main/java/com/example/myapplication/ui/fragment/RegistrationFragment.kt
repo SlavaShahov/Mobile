@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.ui.fragment
 
 import android.app.DatePickerDialog
 import android.os.Bundle
@@ -7,6 +7,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.Fragment
+import com.example.myapplication.R
+import com.example.myapplication.domain.model.Player
+import com.example.myapplication.domain.usecase.CalculateZodiacUseCase
+import com.example.myapplication.data.local.PreferencesManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,17 +30,22 @@ class RegistrationFragment : Fragment() {
     private val calendar = Calendar.getInstance()
     private var selectedBirthDate: Long = 0
 
+    private val calculateZodiacUseCase = CalculateZodiacUseCase()
+    private lateinit var preferencesManager: PreferencesManager
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_registration, container, false)
 
+        preferencesManager = PreferencesManager(requireContext())
         initViews(view)
         setupCourseSpinner()
         setupDifficultySeekBar()
         setupDatePicker()
         setupRegisterButton()
+        //loadExistingPlayer()
 
         return view
     }
@@ -54,8 +63,15 @@ class RegistrationFragment : Fragment() {
         tvResult = view.findViewById(R.id.tvResult)
     }
 
+    private fun loadExistingPlayer() {
+        val player = preferencesManager.getPlayer()
+        player?.let {
+            etFullName.setText(it.fullName)
+            // Загружаем остальные данные игрока...
+        }
+    }
+
     private fun setupDatePicker() {
-        // Устанавливаем текущую дату по умолчанию
         selectedBirthDate = calendar.timeInMillis
         updateDateDisplay()
 
@@ -79,8 +95,6 @@ class RegistrationFragment : Fragment() {
                 calendar.set(selectedYear, selectedMonth, selectedDay)
                 selectedBirthDate = calendar.timeInMillis
                 updateDateDisplay()
-
-                // Автоматически обновляем знак зодиака при выборе даты
                 updateZodiacSign()
             },
             year,
@@ -88,10 +102,7 @@ class RegistrationFragment : Fragment() {
             day
         )
 
-        // Устанавливаем максимальную дату - сегодня
         datePickerDialog.datePicker.maxDate = System.currentTimeMillis()
-
-        // Устанавливаем минимальную дату - 100 лет назад
         val minCalendar = Calendar.getInstance()
         minCalendar.add(Calendar.YEAR, -100)
         datePickerDialog.datePicker.minDate = minCalendar.timeInMillis
@@ -105,7 +116,7 @@ class RegistrationFragment : Fragment() {
     }
 
     private fun updateZodiacSign() {
-        val zodiacSign = calculateZodiacSign(selectedBirthDate)
+        val zodiacSign = calculateZodiacUseCase.execute(selectedBirthDate)
         val zodiacImageRes = getZodiacImageResource(zodiacSign)
         ivZodiacSign.setImageResource(zodiacImageRes)
     }
@@ -135,7 +146,6 @@ class RegistrationFragment : Fragment() {
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-        // сразу показать начальное значение
         tvDifficultyValue.text = "Средний (${sbDifficulty.progress})"
     }
 
@@ -155,7 +165,6 @@ class RegistrationFragment : Fragment() {
             return false
         }
 
-        // простая проверка на фамилию + имя (минимум 2 слова)
         if (fullName.split("\\s+".toRegex()).size < 2) {
             etFullName.error = "Введите как минимум имя и фамилию"
             etFullName.requestFocus()
@@ -177,7 +186,6 @@ class RegistrationFragment : Fragment() {
             return false
         }
 
-        // дата не может быть в будущем
         if (selectedBirthDate > System.currentTimeMillis()) {
             Toast.makeText(requireContext(), "Дата рождения не может быть в будущем", Toast.LENGTH_SHORT).show()
             return false
@@ -199,38 +207,16 @@ class RegistrationFragment : Fragment() {
         val difficulty = sbDifficulty.progress
         val birthDate = selectedBirthDate
 
-        val zodiacSign = calculateZodiacSign(birthDate)
+        val zodiacSign = calculateZodiacUseCase.execute(birthDate)
         val zodiacImageRes = getZodiacImageResource(zodiacSign)
 
         val player = Player(fullName, gender, course, difficulty, birthDate, zodiacSign)
+        preferencesManager.savePlayer(player)
 
-        // Отображаем результат
         displayPlayerInfo(player)
         ivZodiacSign.setImageResource(zodiacImageRes)
-    }
 
-    private fun calculateZodiacSign(birthDate: Long): String {
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = birthDate
-
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-        val month = calendar.get(Calendar.MONTH) + 1
-
-        return when (month) {
-            1 -> if (day <= 20) "Козерог" else "Водолей"
-            2 -> if (day <= 18) "Водолей" else "Рыбы"
-            3 -> if (day <= 20) "Рыбы" else "Овен"
-            4 -> if (day <= 20) "Овен" else "Телец"
-            5 -> if (day <= 21) "Телец" else "Близнецы"
-            6 -> if (day <= 21) "Близнецы" else "Рак"
-            7 -> if (day <= 22) "Рак" else "Лев"
-            8 -> if (day <= 23) "Лев" else "Дева"
-            9 -> if (day <= 23) "Дева" else "Весы"
-            10 -> if (day <= 23) "Весы" else "Скорпион"
-            11 -> if (day <= 22) "Скорпион" else "Стрелец"
-            12 -> if (day <= 21) "Стрелец" else "Козерог"
-            else -> "Неизвестно"
-        }
+        Toast.makeText(requireContext(), "Игрок зарегистрирован!", Toast.LENGTH_SHORT).show()
     }
 
     private fun getZodiacImageResource(zodiacSign: String): Int {

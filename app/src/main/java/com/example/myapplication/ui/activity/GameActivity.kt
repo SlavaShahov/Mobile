@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,6 +9,9 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.myapplication.R
+import com.example.myapplication.domain.model.InsectType
+import com.example.myapplication.game.view.GameView
 
 class GameActivity : AppCompatActivity() {
 
@@ -88,7 +91,7 @@ class GameActivity : AppCompatActivity() {
                     InsectType.REGULAR -> 10
                     InsectType.FAST -> 15
                     InsectType.RARE -> 100
-                    InsectType.BONUS -> 50 // Очки за сбор бонуса
+                    InsectType.BONUS -> 50
                     InsectType.PENALTY -> -15
                 }
                 score += points
@@ -108,7 +111,6 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            // Добавляем обработчик гироскоп-бонуса
             gameView.setOnTiltBonusListener { isActive ->
                 if (isActive) {
                     showToast("Наклоняйте телефон - жуки летят в сторону наклона!")
