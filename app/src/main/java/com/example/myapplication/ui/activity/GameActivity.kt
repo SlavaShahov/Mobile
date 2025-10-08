@@ -128,8 +128,7 @@ class GameActivity : AppCompatActivity() {
                     gameView.updateGoldRate(rate)
                     Log.d(TAG, "Gold rate updated: $rate, points per bug: ${(rate / 100).toInt()}")
 
-                    // Показываем текущий курс в тосте для тестирования
-                    showToast("Курс золота: ${rate.toInt()} руб. (${(rate / 100).toInt()} очков за жука)")
+                    // УБРАНО: показ тоста с курсом золота
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating gold rate", e)
@@ -192,26 +191,14 @@ class GameActivity : AppCompatActivity() {
                 score += points
                 updateScore()
 
-                when (insect.type) {
-                    InsectType.RARE -> {
-                        if (insect.health <= 0) {
-                            showToast("Редкий жук уничтожен! +100 очков")
-                        } else {
-                            showToast("Попадание по редкому жуку! Осталось: ${insect.health}/3")
-                        }
-                    }
-                    InsectType.FAST -> showToast("Быстрый жук! +15 очков")
-                    InsectType.BONUS -> showToast("Гироскоп-бонус активирован! +50 очков")
-                    InsectType.GOLDEN -> showToast("Золотой жук! +${points} очков (курс: ${currentGoldRate.toInt()} руб.)")
-                    else -> {}
-                }
+                // УБРАНО: все всплывающие сообщения о типах жуков
             }
 
             gameView.setOnTiltBonusListener { isActive ->
                 if (isActive) {
                     showToast("Наклоняйте телефон - жуки летят в сторону наклона!")
                 } else {
-                    showToast("Гироскоп-режим завершен")
+                    // УБРАНО: сообщение о завершении гироскоп-режима
                 }
             }
 

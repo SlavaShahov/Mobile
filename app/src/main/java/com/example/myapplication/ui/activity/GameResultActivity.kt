@@ -10,8 +10,7 @@ import com.example.myapplication.data.local.PreferencesManager
 
 class GameResultActivity : AppCompatActivity() {
 
-    private lateinit var tvScore: TextView
-    private lateinit var tvHighScore: TextView
+    private lateinit var tvFinalScore: TextView // ИЗМЕНЕНО: tvFinalScore вместо tvScore
     private lateinit var btnRestart: Button
     private lateinit var btnMenu: Button
 
@@ -28,19 +27,20 @@ class GameResultActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        tvScore = findViewById(R.id.tvScore)
+        tvFinalScore = findViewById(R.id.tvFinalScore) // ИЗМЕНЕНО: tvFinalScore
         btnRestart = findViewById(R.id.btnRestart)
         btnMenu = findViewById(R.id.btnMenu)
     }
 
     private fun displayResults() {
         val score = intent.getIntExtra("score", 0)
-        tvScore.text = "Ваш счет: $score"
 
-        // Сохраняем и показываем рекорд
+        // Сохраняем рекорд
         preferencesManager.saveHighScore(score)
         val highScore = preferencesManager.getHighScore()
-        tvHighScore.text = "Рекорд: $highScore"
+
+        // Показываем счет и рекорд в одном TextView
+        tvFinalScore.text = "Ваш счет: $score\nРекорд: $highScore"
     }
 
     private fun setupButtons() {
