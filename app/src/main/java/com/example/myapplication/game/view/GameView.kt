@@ -7,6 +7,8 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.R
 import com.example.myapplication.data.sensor.GyroscopeManager
 import com.example.myapplication.game.engine.InsectFactory
@@ -15,6 +17,9 @@ import com.example.myapplication.domain.model.Insect
 import com.example.myapplication.domain.model.InsectType
 import com.example.myapplication.game.engine.GameEngine
 import com.example.myapplication.game.sound.SoundManager
+import com.example.myapplication.ui.viewmodel.GameViewModel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class GameView @JvmOverloads constructor(
     context: Context,
@@ -46,6 +51,9 @@ class GameView @JvmOverloads constructor(
     private var onMissListener: (() -> Unit)? = null
     private var onTiltBonusListener: ((Boolean) -> Unit)? = null
 
+    private var viewModel: GameViewModel? = null
+    private var lifecycleOwner: LifecycleOwner? = null
+
     companion object {
         private const val TAG = "GameView"
     }
@@ -61,9 +69,22 @@ class GameView @JvmOverloads constructor(
         }
     }
 
+    fun setViewModel(viewModel: GameViewModel, lifecycleOwner: LifecycleOwner) {
+        this.viewModel = viewModel
+        this.lifecycleOwner = lifecycleOwner
+
+        // Проверяем, нужно ли загружать ресурсы
+        lifecycleOwner.lifecycleScope.launch {
+            viewModel.areResourcesLoaded.collect { loaded ->
+                if (!loaded) {
+                    setupBitmaps()
+                }
+            }
+        }
+    }
+
     init {
         try {
-            setupBitmaps()
             setupGameEngine()
             setupSensors()
             Log.d(TAG, "GameView initialized successfully")
@@ -119,12 +140,14 @@ class GameView @JvmOverloads constructor(
             goldBugBitmap?.let { InsectFactory.goldBugBitmap = it }
 
             Log.d(TAG, "All bitmaps loaded successfully")
+            viewModel?.setResourcesLoaded(true)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error loading PNG bitmaps", e)
             createFallbackBitmaps()
         }
     }
+
 
     private fun loadBackgroundFromResource(resId: Int): Bitmap? {
         return try {
@@ -170,6 +193,7 @@ class GameView @JvmOverloads constructor(
         // InsectFactory сам создаст fallback bitmap'ы при необходимости
     }
 
+    // Остальные методы GameView остаются без изменений...
     fun setGameSettings(gameSpeed: Int, maxCockroaches: Int, bonusInterval: Int) {
         val settings = GameSettings(
             gameSpeed = gameSpeed,

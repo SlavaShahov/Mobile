@@ -8,15 +8,19 @@ import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.R
 import com.example.myapplication.data.network.CbrApiService
 import com.example.myapplication.data.repository.GoldRateRepository
 import com.example.myapplication.domain.model.InsectType
 import com.example.myapplication.game.view.GameView
 import com.example.myapplication.game.view.GoldRateWidget
+import com.example.myapplication.ui.viewmodel.GameViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -33,22 +37,18 @@ class GameActivity : AppCompatActivity() {
     private lateinit var btnPause: Button
     private lateinit var btnMenu: Button
 
-    private var score = 0
-    private var timeLeft = 120
-    private var isPlaying = false
+    private val viewModel: GameViewModel by viewModels()
+
     private var gameHandler = Handler(Looper.getMainLooper())
     private var timerRunnable: Runnable? = null
 
-    private var gameSpeed = 5
-    private var maxCockroaches = 10
-    private var bonusInterval = 30
-    private var roundDuration = 120
-    private var currentGoldRate: Double = 5000.0
-
-    // Курс золота
-    private lateinit var goldRateRepository: GoldRateRepository
     private var goldRateUpdateHandler = Handler(Looper.getMainLooper())
-    private val goldRateUpdateInterval = 60000L // 1 минута
+    private val goldRateUpdateInterval = 60000L
+
+    private lateinit var goldRateRepository: GoldRateRepository
+
+    // Флаг для предотвращения двойного вызова endGame
+    private var isGameEnded = false
 
     companion object {
         const val TAG = "GameActivity"
@@ -64,11 +64,24 @@ class GameActivity : AppCompatActivity() {
 
         Log.d(TAG, "GameActivity onCreate")
 
-        getSettingsFromIntent()
         setupGoldRateService()
         initViews()
+
+        // Связываем ViewModel с GameView
+        gameView.setViewModel(viewModel, this)
+
+        setupObservers()
         setupGame()
-        startGame()
+
+        // Получаем настройки из Intent
+        getSettingsFromIntent()
+
+        // Запускаем игру только если она еще не запущена
+        if (!viewModel.isPlaying.value && !isGameEnded) {
+            startGame()
+        }
+
+        startGoldRateUpdates()
     }
 
     private fun setupGoldRateService() {
@@ -93,62 +106,23 @@ class GameActivity : AppCompatActivity() {
             val apiService = retrofit.create(CbrApiService::class.java)
             goldRateRepository = GoldRateRepository(apiService)
 
-            startGoldRateUpdates()
         } catch (e: Exception) {
             Log.e(TAG, "Error setting up gold rate service", e)
-            // Используем значение по умолчанию
+            // Используем mock репозиторий в случае ошибки
             goldRateRepository = GoldRateRepository(object : CbrApiService {
                 override suspend fun getGoldRates(dateFrom: String, dateTo: String)
                         = com.example.myapplication.data.model.GoldRatesResponse()
             })
-            startGoldRateUpdates()
-        }
-    }
-
-    private fun startGoldRateUpdates() {
-        val updateRunnable = object : Runnable {
-            override fun run() {
-                updateGoldRate()
-                goldRateUpdateHandler.postDelayed(this, goldRateUpdateInterval)
-            }
-        }
-        goldRateUpdateHandler.post(updateRunnable)
-
-        // Первоначальное обновление
-        updateGoldRate()
-    }
-
-    private fun updateGoldRate() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val rate = goldRateRepository.getCurrentGoldRate()
-                runOnUiThread {
-                    currentGoldRate = rate // Сохраняем текущий курс
-                    goldRateWidget.updateGoldRate(rate)
-                    gameView.updateGoldRate(rate)
-                    Log.d(TAG, "Gold rate updated: $rate, points per bug: ${(rate / 100).toInt()}")
-
-                    // УБРАНО: показ тоста с курсом золота
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error updating gold rate", e)
-                runOnUiThread {
-                    val defaultRate = 5000.0
-                    currentGoldRate = defaultRate
-                    goldRateWidget.updateGoldRate(defaultRate)
-                    gameView.updateGoldRate(defaultRate)
-                    Log.d(TAG, "Using default gold rate: $defaultRate")
-                }
-            }
         }
     }
 
     private fun getSettingsFromIntent() {
-        gameSpeed = intent.getIntExtra(EXTRA_GAME_SPEED, 5)
-        maxCockroaches = intent.getIntExtra(EXTRA_MAX_COCKROACHES, 10)
-        bonusInterval = intent.getIntExtra(EXTRA_BONUS_INTERVAL, 30)
-        roundDuration = intent.getIntExtra(EXTRA_ROUND_DURATION, 120)
-        timeLeft = roundDuration
+        val gameSpeed = intent.getIntExtra(EXTRA_GAME_SPEED, 5)
+        val maxCockroaches = intent.getIntExtra(EXTRA_MAX_COCKROACHES, 10)
+        val bonusInterval = intent.getIntExtra(EXTRA_BONUS_INTERVAL, 30)
+        val roundDuration = intent.getIntExtra(EXTRA_ROUND_DURATION, 120)
+
+        viewModel.initializeSettings(gameSpeed, maxCockroaches, bonusInterval, roundDuration)
 
         Log.d(TAG, "Settings: speed=$gameSpeed, maxCockroaches=$maxCockroaches, duration=$roundDuration")
     }
@@ -163,9 +137,12 @@ class GameActivity : AppCompatActivity() {
             btnMenu = findViewById(R.id.btnMenu)
 
             btnPause.setOnClickListener { togglePause() }
-            btnMenu.setOnClickListener { finish() }
+            btnMenu.setOnClickListener {
+                // При нажатии на кнопку меню просто завершаем активность
+                // без вызова endGame()
+                finish()
+            }
 
-            tvTime.text = "Время: ${timeLeft}с"
             Log.d(TAG, "Views initialized successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing views", e)
@@ -174,37 +151,84 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupObservers() {
+        // Наблюдаем за изменениями счета
+        lifecycleScope.launch {
+            viewModel.score.collect { score ->
+                tvScore.text = "Очки: $score"
+            }
+        }
+
+        // Наблюдаем за временем
+        lifecycleScope.launch {
+            viewModel.timeLeft.collect { time ->
+                tvTime.text = "Время: ${time}с"
+
+                if (time <= 0 && viewModel.isPlaying.value && !isGameEnded) {
+                    endGame()
+                }
+            }
+        }
+
+        // Наблюдаем за состоянием игры
+        lifecycleScope.launch {
+            viewModel.isPlaying.collect { isPlaying ->
+                btnPause.text = if (isPlaying) "Пауза" else "Продолжить"
+            }
+        }
+
+        // Наблюдаем за курсом золота
+        lifecycleScope.launch {
+            viewModel.currentGoldRate.collect { rate ->
+                goldRateWidget.updateGoldRate(rate)
+                gameView.updateGoldRate(rate)
+                Log.d(TAG, "Gold rate updated: $rate")
+            }
+        }
+
+        // Наблюдаем за завершением игры (убираем этот наблюдатель, чтобы избежать двойного вызова)
+        // lifecycleScope.launch {
+        //     viewModel.isGameFinished.collect { isFinished ->
+        //         if (isFinished && !isGameEnded) {
+        //             endGame()
+        //         }
+        //     }
+        // }
+    }
+
     private fun setupGame() {
         try {
-            gameView.setGameSettings(gameSpeed, maxCockroaches, bonusInterval)
+            gameView.setGameSettings(
+                viewModel.gameSpeed,
+                viewModel.maxCockroaches,
+                viewModel.bonusInterval
+            )
 
             gameView.setOnInsectClickListener { insect ->
-                // Получаем актуальные очки из GameView
                 val points = when (insect.type) {
                     InsectType.REGULAR -> 10
                     InsectType.FAST -> 15
                     InsectType.RARE -> 100
                     InsectType.BONUS -> 50
                     InsectType.PENALTY -> -15
-                    InsectType.GOLDEN -> gameView.getGoldBugPoints() // Используем актуальное значение
+                    InsectType.GOLDEN -> gameView.getGoldBugPoints()
                 }
-                score += points
-                updateScore()
 
-                // УБРАНО: все всплывающие сообщения о типах жуков
+                if (points > 0) {
+                    viewModel.addPoints(points)
+                } else {
+                    viewModel.subtractPoints(-points)
+                }
             }
 
             gameView.setOnTiltBonusListener { isActive ->
                 if (isActive) {
                     showToast("Наклоняйте телефон - жуки летят в сторону наклона!")
-                } else {
-                    // УБРАНО: сообщение о завершении гироскоп-режима
                 }
             }
 
             gameView.setOnMissListener {
-                score -= 5
-                updateScore()
+                viewModel.subtractPoints(5)
             }
             Log.d(TAG, "Game setup completed")
         } catch (e: Exception) {
@@ -215,10 +239,9 @@ class GameActivity : AppCompatActivity() {
 
     private fun startGame() {
         try {
-            isPlaying = true
+            viewModel.startGame()
             gameView.startGame()
             startTimer()
-            btnPause.text = "Пауза"
             Log.d(TAG, "Game started")
         } catch (e: Exception) {
             Log.e(TAG, "Error starting game", e)
@@ -227,15 +250,14 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun togglePause() {
-        isPlaying = !isPlaying
-        if (isPlaying) {
-            gameView.resumeGame()
-            btnPause.text = "Пауза"
-            startTimer()
-        } else {
+        if (viewModel.isPlaying.value) {
+            viewModel.pauseGame()
             gameView.pauseGame()
-            btnPause.text = "Продолжить"
             stopTimer()
+        } else {
+            viewModel.startGame()
+            gameView.resumeGame()
+            startTimer()
         }
     }
 
@@ -244,11 +266,11 @@ class GameActivity : AppCompatActivity() {
 
         timerRunnable = object : Runnable {
             override fun run() {
-                if (isPlaying) {
-                    timeLeft--
-                    tvTime.text = "Время: ${timeLeft}с"
+                if (viewModel.isPlaying.value && !isGameEnded) {
+                    val currentTime = viewModel.timeLeft.value - 1
+                    viewModel.updateTimeLeft(currentTime)
 
-                    if (timeLeft <= 0) {
+                    if (currentTime <= 0) {
                         endGame()
                     } else {
                         gameHandler.postDelayed(this, 1000)
@@ -265,18 +287,45 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateScore() {
-        tvScore.text = "Очки: $score"
+    private fun startGoldRateUpdates() {
+        val updateRunnable = object : Runnable {
+            override fun run() {
+                updateGoldRate()
+                goldRateUpdateHandler.postDelayed(this, goldRateUpdateInterval)
+            }
+        }
+        goldRateUpdateHandler.post(updateRunnable)
+        updateGoldRate()
+    }
+
+    private fun updateGoldRate() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val rate = goldRateRepository.getCurrentGoldRate()
+                runOnUiThread {
+                    viewModel.updateGoldRate(rate)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating gold rate", e)
+                runOnUiThread {
+                    viewModel.updateGoldRate(5000.0)
+                }
+            }
+        }
     }
 
     private fun endGame() {
-        isPlaying = false
+        // Защита от повторного вызова
+        if (isGameEnded) return
+
+        isGameEnded = true
         stopTimer()
         gameView.endGame()
         goldRateUpdateHandler.removeCallbacksAndMessages(null)
+        viewModel.endGame()
 
         val intent = Intent(this, GameResultActivity::class.java)
-        intent.putExtra("score", score)
+        intent.putExtra("score", viewModel.getFinalScore())
         startActivity(intent)
         finish()
     }
@@ -287,8 +336,17 @@ class GameActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (isPlaying) {
-            togglePause()
+        if (viewModel.isPlaying.value && !isGameEnded) {
+            gameView.pauseGame()
+            stopTimer()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (viewModel.isPlaying.value && !isGameEnded) {
+            gameView.resumeGame()
+            startTimer()
         }
     }
 
@@ -297,6 +355,10 @@ class GameActivity : AppCompatActivity() {
         stopTimer()
         goldRateUpdateHandler.removeCallbacksAndMessages(null)
         gameHandler.removeCallbacksAndMessages(null)
-        gameView.endGame()
+
+        // Завершаем игру только если она еще не завершена
+        if (!isGameEnded) {
+            gameView.endGame()
+        }
     }
 }
