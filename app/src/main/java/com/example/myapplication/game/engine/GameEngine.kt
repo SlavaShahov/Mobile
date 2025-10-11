@@ -1,6 +1,7 @@
 // game/engine/GameEngine.kt
 package com.example.myapplication.game.engine
 
+import android.util.Log
 import com.example.myapplication.game.engine.InsectFactory
 import com.example.myapplication.domain.model.GameSettings
 import com.example.myapplication.domain.model.Insect
@@ -44,8 +45,6 @@ class GameEngine(
     var onTiltBonusChanged: ((Boolean) -> Unit)? = null
     var onGoldRateUpdated: ((Double, Int) -> Unit)? = null
 
-
-
     fun setScreenSize(width: Int, height: Int) {
         this.screenWidth = width.coerceAtLeast(1)
         this.screenHeight = height.coerceAtLeast(1)
@@ -53,6 +52,7 @@ class GameEngine(
 
     fun updateSettings(newSettings: GameSettings) {
         this.settings = newSettings
+        Log.d("GameEngine", "Settings updated: speed=${newSettings.gameSpeed}")
     }
 
     fun updateGoldRate(rate: Double) {
@@ -89,6 +89,21 @@ class GameEngine(
 
         val currentTime = System.currentTimeMillis()
 
+        // ФИКС: Нормальная прогрессия скорости (убрал * 0.3f)
+        val speedMultiplier = when (settings.gameSpeed) {
+            1 -> 0.3f   // ОЧЕНЬ МЕДЛЕННО
+            2 -> 0.6f
+            3 -> 0.9f
+            4 -> 1.2f
+            5 -> 1.5f   // НОРМАЛЬНО
+            6 -> 2.0f
+            7 -> 2.5f
+            8 -> 3.0f
+            9 -> 3.5f
+            10 -> 4.0f  // ОЧЕНЬ БЫСТРО
+            else -> 1.5f
+        }
+
         // Проверяем окончание гироскоп-бонуса
         if (isTiltBonusActive && currentTime > tiltBonusEndTime) {
             deactivateTiltBonus()
@@ -97,7 +112,7 @@ class GameEngine(
         // Добавляем обычных жуков
         val totalBugCount = insects.count { it.type in listOf(InsectType.REGULAR, InsectType.FAST, InsectType.RARE) }
         if (totalBugCount < settings.maxCockroaches &&
-            Random.nextInt(100) < (10 + settings.gameSpeed)) {
+            Random.nextInt(100) < (15 + settings.gameSpeed * 2)) {
             spawnRandomBug()
         }
 
@@ -117,8 +132,7 @@ class GameEngine(
             lastGoldBugTime = currentTime
         }
 
-        // Обновляем позиции с учетом наклона
-        val speedMultiplier = settings.gameSpeed * 0.5f + 0.5f
+        // Обновляем позиции - УБРАЛ * 0.3f !!!
         insects.forEach { insect ->
             if (isTiltBonusActive) {
                 // При активном бонусе добавляем силу от наклона
@@ -140,11 +154,16 @@ class GameEngine(
                 // ПРОВЕРЯЕМ СКАТЫВАНИЕ К УГЛУ И ПРОИГРЫВАЕМ КРИКИ
                 checkCornerRolling(insect, currentTime)
             }
+            // ТЕПЕРЬ БЕЗ ДОПОЛНИТЕЛЬНОГО ЗАМЕДЛЕНИЯ!
             insect.update(deltaTime * speedMultiplier)
         }
 
         // Удаляем вышедших за границы
         removeOutOfBoundsInsects()
+    }
+
+    fun getCurrentSettings(): GameSettings {
+        return settings
     }
 
     private fun checkCornerRolling(insect: Insect, currentTime: Long) {

@@ -2,38 +2,173 @@ package com.example.myapplication.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import com.example.myapplication.data.local.database.AppDatabase
 import com.example.myapplication.domain.model.GameSettings
 import com.example.myapplication.domain.model.Player
 import com.example.myapplication.domain.repository.GameRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 class PreferencesManager(context: Context) : GameRepository {
 
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("game_preferences", Context.MODE_PRIVATE)
 
-    override fun savePlayer(player: Player) {
-        with(sharedPreferences.edit()) {
-            putString("player_name", player.fullName)
-            putString("player_gender", player.gender)
-            putString("player_course", player.course)
-            putInt("player_difficulty", player.difficulty)
-            putLong("player_birth_date", player.birthDate)
-            putString("player_zodiac", player.zodiacSign)
-            apply()
+    private val database = AppDatabase.getInstance(context)
+    private val userDao = database.userDao()
+    private val scoreDao = database.scoreDao()
+
+    // Сохранение текущего пользователя в SharedPreferences
+    private var currentUserId: Long
+        get() = sharedPreferences.getLong("current_user_id", -1L)
+        set(value) = sharedPreferences.edit().putLong("current_user_id", value).apply()
+
+    suspend fun savePlayer(player: Player, password: String) {
+        Log.d("PreferencesManager", "Saving player: ${player.fullName}")
+
+        val user = com.example.myapplication.data.local.entity.User(
+            fullName = player.fullName,
+            gender = player.gender,
+            course = player.course,
+            difficulty = player.difficulty,
+            birthDate = player.birthDate,
+            zodiacSign = player.zodiacSign,
+            password = password
+        )
+
+        userDao.insertUser(user)
+        Log.d("PreferencesManager", "User inserted into database")
+
+        // Получаем ID после вставки через Flow
+        try {
+            val insertedUser = userDao.getUserByName(player.fullName).first()
+            currentUserId = insertedUser.id
+            Log.d("PreferencesManager", "User saved with ID: $currentUserId")
+        } catch (e: Exception) {
+            Log.e("PreferencesManager", "Error getting user ID after insert", e)
         }
     }
 
-    override fun getPlayer(): Player? {
-        val name = sharedPreferences.getString("player_name", null) ?: return null
-        val gender = sharedPreferences.getString("player_gender", "") ?: ""
-        val course = sharedPreferences.getString("player_course", "") ?: ""
-        val difficulty = sharedPreferences.getInt("player_difficulty", 5)
-        val birthDate = sharedPreferences.getLong("player_birth_date", 0)
-        val zodiac = sharedPreferences.getString("player_zodiac", "") ?: ""
-
-        return Player(name, gender, course, difficulty, birthDate, zodiac)
+    override suspend fun savePlayer(player: Player) {
+        savePlayer(player, "default")
     }
 
+    override suspend fun getPlayer(): Player? {
+        val userId = currentUserId
+        if (userId == -1L) return null
+
+        return try {
+            val user = userDao.getUserById(userId).first()
+            Player(
+                fullName = user.fullName,
+                gender = user.gender,
+                course = user.course,
+                difficulty = user.difficulty,
+                birthDate = user.birthDate,
+                zodiacSign = user.zodiacSign
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun getAllUsers(): Flow<List<Player>> {
+        return userDao.getAllUsers().map { users ->
+            users.map { user ->
+                Player(
+                    fullName = user.fullName,
+                    gender = user.gender,
+                    course = user.course,
+                    difficulty = user.difficulty,
+                    birthDate = user.birthDate,
+                    zodiacSign = user.zodiacSign
+                )
+            }
+        }
+    }
+
+    suspend fun setCurrentUser(userId: Long) {
+        currentUserId = userId
+    }
+
+    suspend fun loginUser(fullName: String, password: String): Boolean {
+        return try {
+            val user = userDao.getUserByName(fullName).first()
+            if (user.password == password) {
+                currentUserId = user.id
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun saveScore(score: Int, gameSettings: GameSettings) {
+        val userId = currentUserId
+        if (userId == -1L) return
+
+        // Получаем текущего пользователя
+        val currentUser = getPlayer()
+        if (currentUser == null) {
+            Log.e("PreferencesManager", "No current user found")
+            return
+        }
+
+        // ПРЯМАЯ ПРОВЕРКА В БАЗЕ - более надежно
+        val existingScores = scoreDao.getUserScores(userId).first()
+        val similarScoreExists = existingScores.any {
+            it.score == score &&
+                    it.gameSpeed == gameSettings.gameSpeed &&
+                    it.maxCockroaches == gameSettings.maxCockroaches &&
+                    it.bonusInterval == gameSettings.bonusInterval &&
+                    it.roundDuration == gameSettings.roundDuration
+        }
+
+        if (!similarScoreExists) {
+            val scoreRecord = com.example.myapplication.data.local.entity.ScoreRecord(
+                userId = userId,
+                userName = currentUser.fullName,
+                score = score,
+                gameSpeed = gameSettings.gameSpeed,
+                maxCockroaches = gameSettings.maxCockroaches,
+                bonusInterval = gameSettings.bonusInterval,
+                roundDuration = gameSettings.roundDuration
+            )
+            scoreDao.insertScore(scoreRecord)
+
+            // Очищаем старые рекорды (оставляем только топ 50)
+            scoreDao.cleanupOldScores()
+
+            Log.d("PreferencesManager", "Score saved: $score for user: ${currentUser.fullName}")
+        } else {
+            Log.d("PreferencesManager", "Similar score already exists: $score")
+        }
+    }
+
+    fun getTopScores(): Flow<List<com.example.myapplication.data.local.entity.ScoreRecord>> {
+        return scoreDao.getTopScores(5)
+    }
+
+    fun getUserScores(): Flow<List<com.example.myapplication.data.local.entity.ScoreRecord>> {
+        val userId = currentUserId
+        return if (userId != -1L) {
+            scoreDao.getUserScores(userId)
+        } else {
+            flow { emit(emptyList()) }
+        }
+    }
+
+    suspend fun clearAllScores() {
+        scoreDao.deleteAllScores()
+        Log.d("PreferencesManager", "All scores cleared")
+    }
+
+    // Остальные методы остаются без изменений...
     override fun saveGameSettings(settings: GameSettings) {
         with(sharedPreferences.edit()) {
             putInt("game_speed", settings.gameSpeed)
@@ -53,7 +188,7 @@ class PreferencesManager(context: Context) : GameRepository {
         )
     }
 
-    override fun saveHighScore(score: Int) {
+    override suspend fun saveHighScore(score: Int) {
         val currentHighScore = getHighScore()
         if (score > currentHighScore) {
             sharedPreferences.edit().putInt("high_score", score).apply()

@@ -12,8 +12,10 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.R
+import com.example.myapplication.data.local.PreferencesManager
 import com.example.myapplication.data.network.CbrApiService
 import com.example.myapplication.data.repository.GoldRateRepository
+import com.example.myapplication.domain.model.GameSettings
 import com.example.myapplication.domain.model.InsectType
 import com.example.myapplication.game.view.GameView
 import com.example.myapplication.game.view.GoldRateWidget
@@ -22,8 +24,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.android.ext.android.inject
 import retrofit2.Retrofit
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory
 import java.util.concurrent.TimeUnit
@@ -38,6 +42,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var btnMenu: Button
 
     private val viewModel: GameViewModel by viewModels()
+    private val preferencesManager: PreferencesManager by inject() // Добавлено
 
     private var gameHandler = Handler(Looper.getMainLooper())
     private var timerRunnable: Runnable? = null
@@ -71,14 +76,17 @@ class GameActivity : AppCompatActivity() {
         gameView.setViewModel(viewModel, this)
 
         setupObservers()
-        setupGame()
 
-        // Получаем настройки из Intent
-        getSettingsFromIntent()
-
-        // Запускаем игру только если она еще не запущена
-        if (!viewModel.isPlaying.value && !isGameEnded) {
-            startGame()
+        // ПЕРЕНОСИМ setupGame() ПОСЛЕ загрузки настроек!
+        if (savedInstanceState == null) {
+            getSettingsFromIntent()  // ← Сначала загружаем настройки
+            setupGame()              // ← Потом настраиваем игру
+            if (!viewModel.isPlaying.value && !isGameEnded) {
+                startGame()
+            }
+        } else {
+            Log.d(TAG, "Settings restored from saved state")
+            setupGame()  // ← И здесь тоже настраиваем игру после восстановления
         }
 
         startGoldRateUpdates()
@@ -117,14 +125,19 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun getSettingsFromIntent() {
-        val gameSpeed = intent.getIntExtra(EXTRA_GAME_SPEED, 5)
-        val maxCockroaches = intent.getIntExtra(EXTRA_MAX_COCKROACHES, 10)
-        val bonusInterval = intent.getIntExtra(EXTRA_BONUS_INTERVAL, 30)
-        val roundDuration = intent.getIntExtra(EXTRA_ROUND_DURATION, 120)
+        // ПРОБЛЕМА: используем Intent, но настройки сохраняются в SharedPreferences
+
+        // РЕШЕНИЕ: всегда берем настройки из SharedPreferences
+        val savedSettings = preferencesManager.getGameSettings()
+
+        val gameSpeed = savedSettings.gameSpeed
+        val maxCockroaches = savedSettings.maxCockroaches
+        val bonusInterval = savedSettings.bonusInterval
+        val roundDuration = savedSettings.roundDuration
 
         viewModel.initializeSettings(gameSpeed, maxCockroaches, bonusInterval, roundDuration)
 
-        Log.d(TAG, "Settings: speed=$gameSpeed, maxCockroaches=$maxCockroaches, duration=$roundDuration")
+        Log.d(TAG, "Settings loaded: speed=$gameSpeed, maxCockroaches=$maxCockroaches, duration=$roundDuration")
     }
 
     private fun initViews() {
@@ -185,21 +198,13 @@ class GameActivity : AppCompatActivity() {
                 Log.d(TAG, "Gold rate updated: $rate")
             }
         }
-
-        // Наблюдаем за завершением игры (убираем этот наблюдатель, чтобы избежать двойного вызова)
-        // lifecycleScope.launch {
-        //     viewModel.isGameFinished.collect { isFinished ->
-        //         if (isFinished && !isGameEnded) {
-        //             endGame()
-        //         }
-        //     }
-        // }
     }
 
     private fun setupGame() {
         try {
+            // ТЕПЕРЬ используем актуальные настройки из ViewModel
             gameView.setGameSettings(
-                viewModel.gameSpeed,
+                viewModel.gameSpeed,      // ← Теперь здесь правильная скорость!
                 viewModel.maxCockroaches,
                 viewModel.bonusInterval
             )
@@ -261,6 +266,52 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("score", viewModel.getFinalScore())
+        outState.putInt("timeLeft", viewModel.timeLeft.value)
+        outState.putBoolean("isPlaying", viewModel.isPlaying.value)
+        outState.putBoolean("isGameEnded", isGameEnded)
+        outState.putDouble("goldRate", viewModel.currentGoldRate.value)
+
+        // Сохраняем настройки
+        outState.putInt("gameSpeed", viewModel.gameSpeed)
+        outState.putInt("maxCockroaches", viewModel.maxCockroaches)
+        outState.putInt("bonusInterval", viewModel.bonusInterval)
+        outState.putInt("roundDuration", viewModel.roundDuration)
+
+        Log.d(TAG, "Game state saved: score=${viewModel.getFinalScore()}, time=${viewModel.timeLeft.value}")
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+
+        val savedScore = savedInstanceState.getInt("score", 0)
+        val savedTime = savedInstanceState.getInt("timeLeft", viewModel.roundDuration)
+        val savedIsPlaying = savedInstanceState.getBoolean("isPlaying", false)
+        val savedIsGameEnded = savedInstanceState.getBoolean("isGameEnded", false)
+        val savedGoldRate = savedInstanceState.getDouble("goldRate", 5000.0)
+
+        // Восстанавливаем настройки
+        val savedGameSpeed = savedInstanceState.getInt("gameSpeed", viewModel.gameSpeed)
+        val savedMaxCockroaches = savedInstanceState.getInt("maxCockroaches", viewModel.maxCockroaches)
+        val savedBonusInterval = savedInstanceState.getInt("bonusInterval", viewModel.bonusInterval)
+        val savedRoundDuration = savedInstanceState.getInt("roundDuration", viewModel.roundDuration)
+
+        // Обновляем ViewModel
+        viewModel.initializeSettings(savedGameSpeed, savedMaxCockroaches, savedBonusInterval, savedRoundDuration)
+        viewModel.addPoints(savedScore - viewModel.getFinalScore())
+        viewModel.updateTimeLeft(savedTime)
+        viewModel.setPlaying(savedIsPlaying)
+        viewModel.updateGoldRate(savedGoldRate)
+        isGameEnded = savedIsGameEnded
+
+        // Обновляем GameView
+        gameView.setGameSettings(savedGameSpeed, savedMaxCockroaches, savedBonusInterval)
+
+        Log.d(TAG, "Game state restored: score=$savedScore, time=$savedTime, playing=$savedIsPlaying")
+    }
+
     private fun startTimer() {
         stopTimer()
 
@@ -315,7 +366,6 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun endGame() {
-        // Защита от повторного вызова
         if (isGameEnded) return
 
         isGameEnded = true
@@ -324,12 +374,30 @@ class GameActivity : AppCompatActivity() {
         goldRateUpdateHandler.removeCallbacksAndMessages(null)
         viewModel.endGame()
 
+        // Сохраняем результат в базу данных со всеми настройками
+        lifecycleScope.launch {
+            try {
+                val finalScore = viewModel.getFinalScore()
+                val settings = GameSettings(
+                    gameSpeed = viewModel.gameSpeed,
+                    maxCockroaches = viewModel.maxCockroaches,
+                    bonusInterval = viewModel.bonusInterval,
+                    roundDuration = viewModel.roundDuration
+                )
+                withContext(Dispatchers.IO) {
+                    preferencesManager.saveScore(finalScore, settings)
+                    preferencesManager.saveHighScore(finalScore)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving score", e)
+            }
+        }
+
         val intent = Intent(this, GameResultActivity::class.java)
         intent.putExtra("score", viewModel.getFinalScore())
         startActivity(intent)
         finish()
     }
-
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }

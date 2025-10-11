@@ -198,9 +198,11 @@ class GameView @JvmOverloads constructor(
         val settings = GameSettings(
             gameSpeed = gameSpeed,
             maxCockroaches = maxCockroaches,
-            bonusInterval = bonusInterval
+            bonusInterval = bonusInterval,
+            roundDuration = 120 // временно фиксируем
         )
         gameEngine.updateSettings(settings)
+        Log.d("GameView", "Game settings set: speed=$gameSpeed")
     }
 
     fun setOnInsectClickListener(listener: (Insect) -> Unit) {

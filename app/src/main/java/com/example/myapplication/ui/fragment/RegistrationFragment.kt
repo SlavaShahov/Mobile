@@ -13,6 +13,10 @@ import com.example.myapplication.domain.usecase.CalculateZodiacUseCase
 import com.example.myapplication.data.local.PreferencesManager
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 class RegistrationFragment : Fragment() {
 
@@ -45,7 +49,7 @@ class RegistrationFragment : Fragment() {
         setupDifficultySeekBar()
         setupDatePicker()
         setupRegisterButton()
-        //loadExistingPlayer()
+        loadExistingPlayer()
 
         return view
     }
@@ -64,10 +68,20 @@ class RegistrationFragment : Fragment() {
     }
 
     private fun loadExistingPlayer() {
-        val player = preferencesManager.getPlayer()
-        player?.let {
-            etFullName.setText(it.fullName)
-            // Загружаем остальные данные игрока...
+        lifecycleScope.launch {
+            try {
+                val player = withContext(Dispatchers.IO) {
+                    preferencesManager.getPlayer()
+                }
+                player?.let {
+                    withContext(Dispatchers.Main) {
+                        etFullName.setText(it.fullName)
+                        // Загружаем остальные данные игрока...
+                    }
+                }
+            } catch (e: Exception) {
+                // Игнорируем ошибки при загрузке существующего игрока
+            }
         }
     }
 
@@ -196,27 +210,35 @@ class RegistrationFragment : Fragment() {
 
     private fun registerPlayer() {
         val fullName = etFullName.text.toString().trim()
-
         val gender = when (rgGender.checkedRadioButtonId) {
             R.id.rbMale -> "Мужской"
             R.id.rbFemale -> "Женский"
             else -> ""
         }
-
         val course = spCourse.selectedItem.toString()
         val difficulty = sbDifficulty.progress
         val birthDate = selectedBirthDate
-
         val zodiacSign = calculateZodiacUseCase.execute(birthDate)
         val zodiacImageRes = getZodiacImageResource(zodiacSign)
 
         val player = Player(fullName, gender, course, difficulty, birthDate, zodiacSign)
-        preferencesManager.savePlayer(player)
 
-        displayPlayerInfo(player)
-        ivZodiacSign.setImageResource(zodiacImageRes)
-
-        Toast.makeText(requireContext(), "Игрок зарегистрирован!", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    preferencesManager.savePlayer(player)
+                }
+                withContext(Dispatchers.Main) {
+                    displayPlayerInfo(player)
+                    ivZodiacSign.setImageResource(zodiacImageRes)
+                    Toast.makeText(requireContext(), "Игрок зарегистрирован!", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Ошибка регистрации: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun getZodiacImageResource(zodiacSign: String): Int {

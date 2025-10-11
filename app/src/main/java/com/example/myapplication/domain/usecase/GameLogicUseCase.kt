@@ -17,7 +17,7 @@ class GameLogicUseCase {
     }
 
     fun shouldSpawnInsect(currentCount: Int, maxCount: Int, gameSpeed: Int): Boolean {
-        return currentCount < maxCount && kotlin.random.Random.nextInt(100) < (10 + gameSpeed)
+        return currentCount < maxCount && kotlin.random.Random.nextInt(100) < (15 + gameSpeed * 3) // было 10 + gameSpeed
     }
 
     fun shouldSpawnBonus(lastBonusTime: Long, bonusInterval: Int, gameSpeed: Int): Boolean {

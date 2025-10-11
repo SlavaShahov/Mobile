@@ -4,10 +4,10 @@ import com.example.myapplication.domain.model.GameSettings
 import com.example.myapplication.domain.model.Player
 
 interface GameRepository {
-    fun savePlayer(player: Player)
-    fun getPlayer(): Player?
+    suspend fun savePlayer(player: Player)
+    suspend fun getPlayer(): Player?
     fun saveGameSettings(settings: GameSettings)
     fun getGameSettings(): GameSettings
-    fun saveHighScore(score: Int)
+    suspend fun saveHighScore(score: Int)
     fun getHighScore(): Int
 }

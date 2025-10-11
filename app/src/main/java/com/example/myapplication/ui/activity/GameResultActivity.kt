@@ -5,8 +5,12 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.R
 import com.example.myapplication.data.local.PreferencesManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
 class GameResultActivity : AppCompatActivity() {
@@ -42,14 +46,23 @@ class GameResultActivity : AppCompatActivity() {
     }
 
     private fun displayResults() {
-        val score = intent.getIntExtra("score", 0)
+        lifecycleScope.launch {
+            try {
+                val score = intent.getIntExtra("score", 0)
+                withContext(Dispatchers.IO) {
+                    preferencesManager.saveHighScore(score)
+                }
+                val highScore = preferencesManager.getHighScore()
 
-        // Сохраняем рекорд
-        preferencesManager.saveHighScore(score)
-        val highScore = preferencesManager.getHighScore()
-
-        // Показываем счет и рекорд
-        tvFinalScore.text = "Ваш счет: $score\nРекорд: $highScore"
+                runOnUiThread {
+                    tvFinalScore.text = "Ваш счет: $score\nРекорд: $highScore"
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    tvFinalScore.text = "Ваш счет: ${intent.getIntExtra("score", 0)}"
+                }
+            }
+        }
     }
 
     private fun setupButtons() {

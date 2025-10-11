@@ -2,6 +2,7 @@ package com.example.myapplication.ui.fragment
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -119,19 +120,22 @@ private lateinit var sbRoundDuration: SeekBar
         }
 
         btnStartGame.setOnClickListener {
+            // АВТОМАТИЧЕСКИ СОХРАНЯЕМ НАСТРОЙКИ ПЕРЕД ЗАПУСКОМ!
+            saveSettings()
             startGameWithSettings()
         }
     }
 
     private fun saveSettings() {
         val settings = GameSettings(
-            gameSpeed = sbGameSpeed.progress,
-            maxCockroaches = sbMaxCockroaches.progress,
-            bonusInterval = sbBonusInterval.progress,
-            roundDuration = sbRoundDuration.progress
+            gameSpeed = sbGameSpeed.progress.coerceAtLeast(1),
+            maxCockroaches = sbMaxCockroaches.progress.coerceAtLeast(1),
+            bonusInterval = sbBonusInterval.progress.coerceAtLeast(5),
+            roundDuration = sbRoundDuration.progress.coerceAtLeast(30)
         )
 
         preferencesManager.saveGameSettings(settings)
+        Log.d("SettingsFragment", "Settings saved: ${settings.gameSpeed}")
         Toast.makeText(requireContext(), "Настройки сохранены", Toast.LENGTH_SHORT).show()
     }
 
