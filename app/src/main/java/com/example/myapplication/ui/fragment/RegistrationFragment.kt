@@ -76,11 +76,10 @@ class RegistrationFragment : Fragment() {
                 player?.let {
                     withContext(Dispatchers.Main) {
                         etFullName.setText(it.fullName)
-                        // Загружаем остальные данные игрока...
+                        // Загружаем остальные данные игрока
                     }
                 }
             } catch (e: Exception) {
-                // Игнорируем ошибки при загрузке существующего игрока
             }
         }
     }

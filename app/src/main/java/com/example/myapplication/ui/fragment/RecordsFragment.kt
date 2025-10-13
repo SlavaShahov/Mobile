@@ -31,14 +31,13 @@ class RecordsFragment : Fragment() {
 
         initViews(view)
         setupRecyclerView()
-        loadRecords() // УБРАЛ ВЫЗОВ setupFilterSpinner()
+        loadRecords()
 
         return view
     }
 
     private fun initViews(view: View) {
         recyclerView = view.findViewById(R.id.recyclerViewRecords)
-        // УБРАЛ spFilter инициализацию
     }
 
     private fun setupRecyclerView() {
@@ -47,17 +46,14 @@ class RecordsFragment : Fragment() {
         recyclerView.adapter = adapter
     }
 
-    // УБРАЛ ВЕСЬ МЕТОД setupFilterSpinner()
-
     private fun loadRecords() {
         lifecycleScope.launch {
-            // Загружаем все рекорды
             preferencesManager.getTopScores().collect { records ->
                 Log.d("RecordsFragment", "Top records loaded: ${records.size}")
                 records.forEachIndexed { index, record ->
-                    Log.d("RecordsFragment", "Top Record $index: ${record.score} by ${record.userName}")
+                    Log.d("RecordsFragment", "Record ${index + 1}: ${record.score} by ${record.userName}")
                 }
-                adapter.submitList(records)
+                adapter.updateRecords(records)
             }
         }
     }

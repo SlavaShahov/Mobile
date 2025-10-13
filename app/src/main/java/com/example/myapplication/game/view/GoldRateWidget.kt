@@ -30,7 +30,7 @@ class GoldRateWidget @JvmOverloads constructor(
 
     fun updateGoldRate(rate: Double) {
         this.goldRate = rate
-        this.pointsPerGoldBug = ceil(rate / 100).toInt() // Делим на 100!
+        this.pointsPerGoldBug = ceil(rate / 100).toInt()
         invalidate()
     }
 

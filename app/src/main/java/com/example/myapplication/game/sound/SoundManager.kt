@@ -9,7 +9,7 @@ class SoundManager(private val context: Context) {
 
     companion object {
         private const val TAG = "SoundManager"
-        private const val MAX_CONCURRENT_SCREAMS = 5 // Увеличил для активного скатывания
+        private const val MAX_CONCURRENT_SCREAMS = 5
     }
 
     private var tiltBonusSound: MediaPlayer? = null
@@ -45,7 +45,6 @@ class SoundManager(private val context: Context) {
         }
     }
 
-    // Новый метод для криков при скатывании к углу
     fun playRollingScream() {
         if (!isSoundEnabled) return
 

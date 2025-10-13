@@ -1,5 +1,6 @@
 package com.example.myapplication.data.repository
 
+import android.icu.util.Calendar
 import android.util.Log
 import com.example.myapplication.data.network.CbrApiService
 import java.text.SimpleDateFormat
@@ -11,33 +12,33 @@ class GoldRateRepository(private val apiService: CbrApiService) {
     suspend fun getCurrentGoldRate(): Double {
         try {
             val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            val currentDate = dateFormat.format(Date())
+            val calendar = Calendar.getInstance()
 
-            Log.d("GoldRateRepository", "Fetching gold rate for date: $currentDate")
+            // Пытаемся получить данные за последние 7 дней
+            for (i in 0..6) {
+                val checkDate = dateFormat.format(calendar.time)
+                Log.d("GoldRateRepository", "Checking date: $checkDate")
 
-            val response = apiService.getGoldRates(currentDate, currentDate)
+                val response = apiService.getGoldRates(checkDate, checkDate)
 
-            Log.d("GoldRateRepository", "Response records count: ${response.records.size}")
+                val goldRecord = response.records.firstOrNull { it.code == "1" }
+                if (goldRecord != null && goldRecord.buy.isNotEmpty()) {
+                    val rate = goldRecord.buy.replace(",", ".").toDoubleOrNull() ?: continue
+                    Log.d("GoldRateRepository", "Gold rate found for $checkDate: $rate")
+                    return rate
+                }
 
-            response.records.forEach { record ->
-                Log.d("GoldRateRepository", "Record: code=${record.code}, buy=${record.buy}, date=${record.date}")
+                // Переходим к предыдущему дню
+                calendar.add(Calendar.DAY_OF_YEAR, -1)
             }
 
-            val goldRecord = response.records
-                .firstOrNull { it.code == "1" } // 1 - код золота
-
-            return if (goldRecord != null && goldRecord.buy.isNotEmpty()) {
-                val rate = goldRecord.buy.replace(",", ".").toDoubleOrNull() ?: 5000.0
-                Log.d("GoldRateRepository", "Gold rate found: $rate")
-                rate
-            } else {
-                Log.d("GoldRateRepository", "Gold record not found, using default: 5000.0")
-                5000.0
-            }
+            // Если за 7 дней данных нет, используем реалистичное значение
+            Log.d("GoldRateRepository", "No gold rate data found for last 7 days, using realistic rate")
+            return 10500.0
 
         } catch (e: Exception) {
             Log.e("GoldRateRepository", "Error fetching gold rate", e)
-            return 5000.0
+            return 10500.0
         }
     }
 }

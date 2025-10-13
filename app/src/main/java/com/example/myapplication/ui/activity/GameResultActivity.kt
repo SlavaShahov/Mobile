@@ -21,7 +21,6 @@ class GameResultActivity : AppCompatActivity() {
 
     private val preferencesManager: PreferencesManager by inject()
 
-    // Флаг для предотвращения повторной обработки
     private var isResultProcessed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,7 +29,6 @@ class GameResultActivity : AppCompatActivity() {
 
         initViews()
 
-        // Обрабатываем результат только один раз
         if (!isResultProcessed) {
             displayResults()
             isResultProcessed = true
@@ -67,19 +65,16 @@ class GameResultActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         btnRestart.setOnClickListener {
-            // Запускаем новую игру и завершаем эту активность
             startActivity(Intent(this, GameActivity::class.java))
             finish()
         }
 
         btnMenu.setOnClickListener {
-            // Просто завершаем активность, возвращаясь в MainActivity
             finish()
         }
     }
 
     override fun onBackPressed() {
-        // При нажатии кнопки назад просто завершаем активность
         finish()
     }
 }

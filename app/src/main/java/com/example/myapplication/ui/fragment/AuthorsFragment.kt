@@ -21,7 +21,6 @@ class AuthorsFragment : Fragment() {
         val listView: ListView = view.findViewById(R.id.listViewAuthors)
         val authors = listOf(
             Author("Шахов Вячеслав", R.drawable.avatar1),
-            // Добавьте других авторов при необходимости
         )
 
         val adapter = AuthorAdapter(requireContext(), authors)

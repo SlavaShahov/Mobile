@@ -42,20 +42,18 @@ private lateinit var sbRoundDuration: SeekBar
         setupSeekBars()
         setupButtons()
         setDefaultSettings()
-        //loadExistingSettings()
 
         return view
     }
 
     private fun setDefaultSettings() {
-        val defaultSettings = GameSettings() // Использует значения по умолчанию
+        val defaultSettings = GameSettings()
 
         sbGameSpeed.progress = defaultSettings.gameSpeed
         sbMaxCockroaches.progress = defaultSettings.maxCockroaches
         sbBonusInterval.progress = defaultSettings.bonusInterval
         sbRoundDuration.progress = defaultSettings.roundDuration
 
-        // Обновляем текстовые поля
         updateSeekBarText(sbGameSpeed, tvGameSpeed, "Скорость: ", "x")
         updateSeekBarText(sbMaxCockroaches, tvMaxCockroaches, "Макс. тараканов: ", "")
         updateSeekBarText(sbBonusInterval, tvBonusInterval, "Интервал бонусов: ", "сек")
@@ -82,7 +80,6 @@ private lateinit var sbRoundDuration: SeekBar
         sbBonusInterval.progress = settings.bonusInterval
         sbRoundDuration.progress = settings.roundDuration
 
-        // Обновляем текстовые поля
         updateSeekBarText(sbGameSpeed, tvGameSpeed, "Скорость: ", "x")
         updateSeekBarText(sbMaxCockroaches, tvMaxCockroaches, "Макс. тараканов: ", "")
         updateSeekBarText(sbBonusInterval, tvBonusInterval, "Интервал бонусов: ", "сек")
@@ -120,7 +117,7 @@ private lateinit var sbRoundDuration: SeekBar
         }
 
         btnStartGame.setOnClickListener {
-            // АВТОМАТИЧЕСКИ СОХРАНЯЕМ НАСТРОЙКИ ПЕРЕД ЗАПУСКОМ!
+            // Автосохранение настроек  перед запуском
             saveSettings()
             startGameWithSettings()
         }

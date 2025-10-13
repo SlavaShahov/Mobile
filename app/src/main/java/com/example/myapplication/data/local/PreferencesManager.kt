@@ -21,7 +21,6 @@ class PreferencesManager(context: Context) : GameRepository {
     private val userDao = database.userDao()
     private val scoreDao = database.scoreDao()
 
-    // Сохранение текущего пользователя в SharedPreferences
     private var currentUserId: Long
         get() = sharedPreferences.getLong("current_user_id", -1L)
         set(value) = sharedPreferences.edit().putLong("current_user_id", value).apply()
@@ -119,7 +118,7 @@ class PreferencesManager(context: Context) : GameRepository {
             return
         }
 
-        // ПРЯМАЯ ПРОВЕРКА В БАЗЕ - более надежно
+        // Прямая проверка в базе
         val existingScores = scoreDao.getUserScores(userId).first()
         val similarScoreExists = existingScores.any {
             it.score == score &&
@@ -168,7 +167,6 @@ class PreferencesManager(context: Context) : GameRepository {
         Log.d("PreferencesManager", "All scores cleared")
     }
 
-    // Остальные методы остаются без изменений...
     override fun saveGameSettings(settings: GameSettings) {
         with(sharedPreferences.edit()) {
             putInt("game_speed", settings.gameSpeed)

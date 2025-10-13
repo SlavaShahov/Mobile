@@ -13,6 +13,6 @@ data class User(
     val difficulty: Int,
     val birthDate: Long,
     val zodiacSign: String,
-    val password: String, // Добавлено поле пароля
+    val password: String,
     val createdAt: Long = System.currentTimeMillis()
 )

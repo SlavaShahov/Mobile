@@ -27,7 +27,6 @@ val appModule = module {
 
     single { GoldRateRepository(get()) }
 
-    // ViewModel без зависимостей для простоты
     viewModel { GameViewModel() }
 
     factory { (onTiltChanged: (Float, Float) -> Unit) ->

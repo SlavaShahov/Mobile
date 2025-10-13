@@ -42,7 +42,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var btnMenu: Button
 
     private val viewModel: GameViewModel by viewModels()
-    private val preferencesManager: PreferencesManager by inject() // Добавлено
+    private val preferencesManager: PreferencesManager by inject()
 
     private var gameHandler = Handler(Looper.getMainLooper())
     private var timerRunnable: Runnable? = null
@@ -52,7 +52,6 @@ class GameActivity : AppCompatActivity() {
 
     private lateinit var goldRateRepository: GoldRateRepository
 
-    // Флаг для предотвращения двойного вызова endGame
     private var isGameEnded = false
 
     companion object {
@@ -77,16 +76,15 @@ class GameActivity : AppCompatActivity() {
 
         setupObservers()
 
-        // ПЕРЕНОСИМ setupGame() ПОСЛЕ загрузки настроек!
         if (savedInstanceState == null) {
-            getSettingsFromIntent()  // ← Сначала загружаем настройки
-            setupGame()              // ← Потом настраиваем игру
+            getSettingsFromIntent()  // Сначала загружаем настройки
+            setupGame()              // Потом настраиваем игру
             if (!viewModel.isPlaying.value && !isGameEnded) {
                 startGame()
             }
         } else {
             Log.d(TAG, "Settings restored from saved state")
-            setupGame()  // ← И здесь тоже настраиваем игру после восстановления
+            setupGame()  //И здесь тоже настраиваем игру после восстановления
         }
 
         startGoldRateUpdates()
@@ -116,7 +114,6 @@ class GameActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             Log.e(TAG, "Error setting up gold rate service", e)
-            // Используем mock репозиторий в случае ошибки
             goldRateRepository = GoldRateRepository(object : CbrApiService {
                 override suspend fun getGoldRates(dateFrom: String, dateTo: String)
                         = com.example.myapplication.data.model.GoldRatesResponse()
@@ -125,9 +122,6 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun getSettingsFromIntent() {
-        // ПРОБЛЕМА: используем Intent, но настройки сохраняются в SharedPreferences
-
-        // РЕШЕНИЕ: всегда берем настройки из SharedPreferences
         val savedSettings = preferencesManager.getGameSettings()
 
         val gameSpeed = savedSettings.gameSpeed
@@ -151,8 +145,6 @@ class GameActivity : AppCompatActivity() {
 
             btnPause.setOnClickListener { togglePause() }
             btnMenu.setOnClickListener {
-                // При нажатии на кнопку меню просто завершаем активность
-                // без вызова endGame()
                 finish()
             }
 
@@ -165,14 +157,12 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun setupObservers() {
-        // Наблюдаем за изменениями счета
         lifecycleScope.launch {
             viewModel.score.collect { score ->
                 tvScore.text = "Очки: $score"
             }
         }
 
-        // Наблюдаем за временем
         lifecycleScope.launch {
             viewModel.timeLeft.collect { time ->
                 tvTime.text = "Время: ${time}с"
@@ -183,14 +173,12 @@ class GameActivity : AppCompatActivity() {
             }
         }
 
-        // Наблюдаем за состоянием игры
         lifecycleScope.launch {
             viewModel.isPlaying.collect { isPlaying ->
                 btnPause.text = if (isPlaying) "Пауза" else "Продолжить"
             }
         }
 
-        // Наблюдаем за курсом золота
         lifecycleScope.launch {
             viewModel.currentGoldRate.collect { rate ->
                 goldRateWidget.updateGoldRate(rate)
@@ -202,9 +190,9 @@ class GameActivity : AppCompatActivity() {
 
     private fun setupGame() {
         try {
-            // ТЕПЕРЬ используем актуальные настройки из ViewModel
+            // используем актуальные настройки из ViewModel
             gameView.setGameSettings(
-                viewModel.gameSpeed,      // ← Теперь здесь правильная скорость!
+                viewModel.gameSpeed,
                 viewModel.maxCockroaches,
                 viewModel.bonusInterval
             )

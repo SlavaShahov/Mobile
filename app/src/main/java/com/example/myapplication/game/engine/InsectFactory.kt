@@ -76,7 +76,6 @@ object InsectFactory {
         screenHeight: Int,
         bitmap: android.graphics.Bitmap
     ): Pair<Float, Float> {
-        // Защита от некорректных размеров
         val safeWidth = screenWidth.coerceAtLeast(1)
         val safeHeight = screenHeight.coerceAtLeast(1)
         val bitmapWidth = bitmap.width.coerceAtLeast(1)

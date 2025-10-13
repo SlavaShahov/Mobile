@@ -89,7 +89,6 @@ class GameEngine(
 
         val currentTime = System.currentTimeMillis()
 
-        // ФИКС: Нормальная прогрессия скорости (убрал * 0.3f)
         val speedMultiplier = when (settings.gameSpeed) {
             1 -> 0.3f   // ОЧЕНЬ МЕДЛЕННО
             2 -> 0.6f
@@ -132,7 +131,7 @@ class GameEngine(
             lastGoldBugTime = currentTime
         }
 
-        // Обновляем позиции - УБРАЛ * 0.3f !!!
+        // Обновляем позиции
         insects.forEach { insect ->
             if (isTiltBonusActive) {
                 // При активном бонусе добавляем силу от наклона
@@ -151,10 +150,9 @@ class GameEngine(
                     insect.speedY = insect.speedY / currentSpeed * maxSpeed
                 }
 
-                // ПРОВЕРЯЕМ СКАТЫВАНИЕ К УГЛУ И ПРОИГРЫВАЕМ КРИКИ
+                // Проверка на скатывание и проигрывание крика
                 checkCornerRolling(insect, currentTime)
             }
-            // ТЕПЕРЬ БЕЗ ДОПОЛНИТЕЛЬНОГО ЗАМЕДЛЕНИЯ!
             insect.update(deltaTime * speedMultiplier)
         }
 
@@ -178,8 +176,8 @@ class GameEngine(
                     insect.y >= screenHeight - edgeThreshold
 
         if (isNearEdge && isTiltBonusActive) {
-            // Случайная вероятность крика 30%
-            if (Random.nextInt(100) < 30) {
+            // Случайная вероятность крика 20%
+            if (Random.nextInt(100) < 20) {
                 soundManager.playRollingScream()
                 lastScreamTime = currentTime
             }

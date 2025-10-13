@@ -21,7 +21,7 @@ data class ScoreRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val userId: Long,
-    val userName: String, // Добавлено имя пользователя
+    val userName: String,
     val score: Int,
 
     // Все настройки игры
@@ -30,6 +30,6 @@ data class ScoreRecord(
     val bonusInterval: Int,
     val roundDuration: Int,
 
-    // Дополнительная информация
+    // Дополнительная информация (дата время)
     val timestamp: Long = System.currentTimeMillis()
 )

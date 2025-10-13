@@ -55,7 +55,7 @@ class GyroscopeManager(
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Не используется
+
     }
 
     fun isGyroscopeAvailable(): Boolean {
