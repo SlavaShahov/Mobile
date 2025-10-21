@@ -22,7 +22,6 @@ import com.example.myapplication.game.view.GoldRateWidget
 import com.example.myapplication.ui.viewmodel.GameViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -77,14 +76,14 @@ class GameActivity : AppCompatActivity() {
         setupObservers()
 
         if (savedInstanceState == null) {
-            getSettingsFromIntent()  // Сначала загружаем настройки
-            setupGame()              // Потом настраиваем игру
+            getSettingsFromIntent()
+            setupGame()
             if (!viewModel.isPlaying.value && !isGameEnded) {
                 startGame()
             }
         } else {
             Log.d(TAG, "Settings restored from saved state")
-            setupGame()  //И здесь тоже настраиваем игру после восстановления
+            setupGame()
         }
 
         startGoldRateUpdates()
@@ -190,7 +189,6 @@ class GameActivity : AppCompatActivity() {
 
     private fun setupGame() {
         try {
-            // используем актуальные настройки из ViewModel
             gameView.setGameSettings(
                 viewModel.gameSpeed,
                 viewModel.maxCockroaches,
@@ -262,7 +260,6 @@ class GameActivity : AppCompatActivity() {
         outState.putBoolean("isGameEnded", isGameEnded)
         outState.putDouble("goldRate", viewModel.currentGoldRate.value)
 
-        // Сохраняем настройки
         outState.putInt("gameSpeed", viewModel.gameSpeed)
         outState.putInt("maxCockroaches", viewModel.maxCockroaches)
         outState.putInt("bonusInterval", viewModel.bonusInterval)
@@ -280,13 +277,11 @@ class GameActivity : AppCompatActivity() {
         val savedIsGameEnded = savedInstanceState.getBoolean("isGameEnded", false)
         val savedGoldRate = savedInstanceState.getDouble("goldRate", 5000.0)
 
-        // Восстанавливаем настройки
         val savedGameSpeed = savedInstanceState.getInt("gameSpeed", viewModel.gameSpeed)
         val savedMaxCockroaches = savedInstanceState.getInt("maxCockroaches", viewModel.maxCockroaches)
         val savedBonusInterval = savedInstanceState.getInt("bonusInterval", viewModel.bonusInterval)
         val savedRoundDuration = savedInstanceState.getInt("roundDuration", viewModel.roundDuration)
 
-        // Обновляем ViewModel
         viewModel.initializeSettings(savedGameSpeed, savedMaxCockroaches, savedBonusInterval, savedRoundDuration)
         viewModel.addPoints(savedScore - viewModel.getFinalScore())
         viewModel.updateTimeLeft(savedTime)
@@ -294,7 +289,6 @@ class GameActivity : AppCompatActivity() {
         viewModel.updateGoldRate(savedGoldRate)
         isGameEnded = savedIsGameEnded
 
-        // Обновляем GameView
         gameView.setGameSettings(savedGameSpeed, savedMaxCockroaches, savedBonusInterval)
 
         Log.d(TAG, "Game state restored: score=$savedScore, time=$savedTime, playing=$savedIsPlaying")
@@ -362,7 +356,6 @@ class GameActivity : AppCompatActivity() {
         goldRateUpdateHandler.removeCallbacksAndMessages(null)
         viewModel.endGame()
 
-        // Сохраняем результат в базу данных со всеми настройками
         lifecycleScope.launch {
             try {
                 val finalScore = viewModel.getFinalScore()
@@ -412,7 +405,6 @@ class GameActivity : AppCompatActivity() {
         goldRateUpdateHandler.removeCallbacksAndMessages(null)
         gameHandler.removeCallbacksAndMessages(null)
 
-        // Завершаем игру только если она еще не завершена
         if (!isGameEnded) {
             gameView.endGame()
         }

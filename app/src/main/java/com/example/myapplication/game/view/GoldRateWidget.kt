@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
-import com.example.myapplication.R
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -39,17 +38,17 @@ class GoldRateWidget @JvmOverloads constructor(
         val centerY = height / 2f
         val radius = min(width, height) / 2f - 10
 
-        // Рисуем шар
-        paint.color = Color.argb(200, 255, 215, 0) // золотой цвет с прозрачностью
+        //Шарик
+        paint.color = Color.argb(200, 255, 215, 0)
         canvas.drawCircle(centerX, centerY, radius, paint)
 
-        // Обводка
+        //Обводка
         paint.color = Color.YELLOW
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 4f
         canvas.drawCircle(centerX, centerY, radius, paint)
 
-        // Текст
+        //Надписи
         paint.style = Paint.Style.FILL
         val rateText = "₽ ${goldRate.toInt()}"
         val pointsText = "За жука: $pointsPerGoldBug"

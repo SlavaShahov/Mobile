@@ -9,7 +9,6 @@ import com.example.myapplication.domain.model.Player
 import com.example.myapplication.domain.repository.GameRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 class PreferencesManager(context: Context) : GameRepository {
@@ -111,14 +110,12 @@ class PreferencesManager(context: Context) : GameRepository {
         val userId = currentUserId
         if (userId == -1L) return
 
-        // Получаем текущего пользователя
         val currentUser = getPlayer()
         if (currentUser == null) {
             Log.e("PreferencesManager", "No current user found")
             return
         }
 
-        // Прямая проверка в базе
         val existingScores = scoreDao.getUserScores(userId).first()
         val similarScoreExists = existingScores.any {
             it.score == score &&
@@ -140,7 +137,6 @@ class PreferencesManager(context: Context) : GameRepository {
             )
             scoreDao.insertScore(scoreRecord)
 
-            // Очищаем старые рекорды (оставляем только топ 50)
             scoreDao.cleanupOldScores()
 
             Log.d("PreferencesManager", "Score saved: $score for user: ${currentUser.fullName}")
@@ -153,19 +149,7 @@ class PreferencesManager(context: Context) : GameRepository {
         return scoreDao.getTopScores(5)
     }
 
-    fun getUserScores(): Flow<List<com.example.myapplication.data.local.entity.ScoreRecord>> {
-        val userId = currentUserId
-        return if (userId != -1L) {
-            scoreDao.getUserScores(userId)
-        } else {
-            flow { emit(emptyList()) }
-        }
-    }
 
-    suspend fun clearAllScores() {
-        scoreDao.deleteAllScores()
-        Log.d("PreferencesManager", "All scores cleared")
-    }
 
     override fun saveGameSettings(settings: GameSettings) {
         with(sharedPreferences.edit()) {

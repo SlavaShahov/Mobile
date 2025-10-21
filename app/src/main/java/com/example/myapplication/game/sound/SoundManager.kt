@@ -49,11 +49,9 @@ class SoundManager(private val context: Context) {
         if (!isSoundEnabled) return
 
         val currentTime = System.currentTimeMillis()
-        // Ограничиваем частоту криков чтобы не было сплошного шума
         if (currentTime - lastRollingScreamTime < 500) return
 
         try {
-            // Ищем свободный MediaPlayer в пуле
             val availableScream = insectScreamPool.find { !it.isPlaying }
             availableScream?.let {
                 it.seekTo(0)

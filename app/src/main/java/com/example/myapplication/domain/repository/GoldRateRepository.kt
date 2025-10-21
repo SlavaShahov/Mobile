@@ -4,7 +4,6 @@ import android.icu.util.Calendar
 import android.util.Log
 import com.example.myapplication.data.network.CbrApiService
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class GoldRateRepository(private val apiService: CbrApiService) {
@@ -14,7 +13,7 @@ class GoldRateRepository(private val apiService: CbrApiService) {
             val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             val calendar = Calendar.getInstance()
 
-            // Пытаемся получить данные за последние 7 дней
+            //Последнее за 7 дней
             for (i in 0..6) {
                 val checkDate = dateFormat.format(calendar.time)
                 Log.d("GoldRateRepository", "Checking date: $checkDate")
@@ -28,11 +27,8 @@ class GoldRateRepository(private val apiService: CbrApiService) {
                     return rate
                 }
 
-                // Переходим к предыдущему дню
                 calendar.add(Calendar.DAY_OF_YEAR, -1)
             }
-
-            // Если за 7 дней данных нет, используем реалистичное значение
             Log.d("GoldRateRepository", "No gold rate data found for last 7 days, using realistic rate")
             return 10500.0
 

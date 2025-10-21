@@ -1,8 +1,6 @@
-// game/engine/GameEngine.kt
 package com.example.myapplication.game.engine
 
 import android.util.Log
-import com.example.myapplication.game.engine.InsectFactory
 import com.example.myapplication.domain.model.GameSettings
 import com.example.myapplication.domain.model.Insect
 import com.example.myapplication.domain.model.InsectType
@@ -21,24 +19,16 @@ class GameEngine(
     private var lastGoldBugTime = 0L
     private var isGameRunning = false
 
-    // Гироскоп-бонус
     private var isTiltBonusActive = false
     private var tiltBonusEndTime = 0L
     private val TILT_BONUS_DURATION = 10000L
 
-    // Для управления криками при скатывании
     private var lastScreamTime = 0L
-    private val SCREAM_INTERVAL = 800L // Интервал между криками
-
-    // Размеры экрана
+    private val SCREAM_INTERVAL = 800L
     private var screenWidth: Int = 0
     private var screenHeight: Int = 0
-
-    // Текущие значения наклона
     private var currentTiltX = 0f
     private var currentTiltY = 0f
-
-    // Курс золота
     private var currentGoldRate: Double = 5000.0
     private var goldBugPoints: Int = 50
 
@@ -103,19 +93,16 @@ class GameEngine(
             else -> 1.5f
         }
 
-        // Проверяем окончание гироскоп-бонуса
         if (isTiltBonusActive && currentTime > tiltBonusEndTime) {
             deactivateTiltBonus()
         }
 
-        // Добавляем обычных жуков
         val totalBugCount = insects.count { it.type in listOf(InsectType.REGULAR, InsectType.FAST, InsectType.RARE) }
         if (totalBugCount < settings.maxCockroaches &&
             Random.nextInt(100) < (15 + settings.gameSpeed * 2)) {
             spawnRandomBug()
         }
 
-        // Добавляем бонусы/штрафы
         if (shouldSpawnBonus(currentTime)) {
             if (Random.nextBoolean()) {
                 spawnInsect(InsectType.BONUS)
@@ -125,21 +112,17 @@ class GameEngine(
             lastBonusTime = currentTime
         }
 
-        // Добавляем золотого жука
         if (shouldSpawnGoldBug(currentTime)) {
             spawnGoldBug()
             lastGoldBugTime = currentTime
         }
 
-        // Обновляем позиции
         insects.forEach { insect ->
             if (isTiltBonusActive) {
-                // При активном бонусе добавляем силу от наклона
                 val TILT_FORCE_MULTIPLIER = 800f
                 insect.speedX += currentTiltX * deltaTime * TILT_FORCE_MULTIPLIER
                 insect.speedY += currentTiltY * deltaTime * TILT_FORCE_MULTIPLIER
 
-                // Ограничиваем максимальную скорость
                 val currentSpeed = sqrt(insect.speedX * insect.speedX + insect.speedY * insect.speedY)
                 val maxSpeed = when (insect.type) {
                     InsectType.FAST -> 600f
@@ -149,14 +132,10 @@ class GameEngine(
                     insect.speedX = insect.speedX / currentSpeed * maxSpeed
                     insect.speedY = insect.speedY / currentSpeed * maxSpeed
                 }
-
-                // Проверка на скатывание и проигрывание крика
                 checkCornerRolling(insect, currentTime)
             }
             insect.update(deltaTime * speedMultiplier)
         }
-
-        // Удаляем вышедших за границы
         removeOutOfBoundsInsects()
     }
 
@@ -167,7 +146,6 @@ class GameEngine(
     private fun checkCornerRolling(insect: Insect, currentTime: Long) {
         if (currentTime - lastScreamTime < SCREAM_INTERVAL) return
 
-        // Простая проверка: если жук близко к краю и гироскоп активен
         val edgeThreshold = 100f
         val isNearEdge =
             insect.x <= edgeThreshold ||
@@ -176,7 +154,6 @@ class GameEngine(
                     insect.y >= screenHeight - edgeThreshold
 
         if (isNearEdge && isTiltBonusActive) {
-            // Случайная вероятность крика 20%
             if (Random.nextInt(100) < 20) {
                 soundManager.playRollingScream()
                 lastScreamTime = currentTime

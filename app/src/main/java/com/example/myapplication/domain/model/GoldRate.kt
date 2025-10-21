@@ -4,7 +4,6 @@ import org.simpleframework.xml.Attribute
 import org.simpleframework.xml.Element
 import org.simpleframework.xml.ElementList
 import org.simpleframework.xml.Root
-import org.simpleframework.xml.Path
 
 @Root(name = "Record", strict = false)
 data class GoldRateRecord(

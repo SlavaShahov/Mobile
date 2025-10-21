@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
 import com.example.myapplication.data.local.PreferencesManager
 import com.example.myapplication.ui.adapter.RecordsAdapter
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 

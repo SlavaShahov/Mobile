@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class GameViewModel : ViewModel() {
 
-    // Состояние игры
     private val _score = MutableStateFlow(0)
     val score: StateFlow<Int> = _score.asStateFlow()
 
@@ -20,11 +19,9 @@ class GameViewModel : ViewModel() {
     private val _currentGoldRate = MutableStateFlow(5000.0)
     val currentGoldRate: StateFlow<Double> = _currentGoldRate.asStateFlow()
 
-    // Состояние загрузки ресурсов
     private val _areResourcesLoaded = MutableStateFlow(false)
     val areResourcesLoaded: StateFlow<Boolean> = _areResourcesLoaded.asStateFlow()
 
-    // Настройки игры
     private var _gameSpeed = 5
     private var _maxCockroaches = 10
     private var _bonusInterval = 30
@@ -52,12 +49,10 @@ class GameViewModel : ViewModel() {
         _timeLeft.value = roundDuration
     }
 
-    // Методы для управления ресурсами
     fun setResourcesLoaded(loaded: Boolean) {
         _areResourcesLoaded.value = loaded
     }
 
-    // Методы для управления игрой
     fun addPoints(points: Int) {
         _score.value += points
     }
@@ -77,13 +72,7 @@ class GameViewModel : ViewModel() {
     fun updateGoldRate(rate: Double) {
         _currentGoldRate.value = rate
     }
-
-    fun resetGame() {
-        _score.value = 0
-        _timeLeft.value = _roundDuration
-        _isPlaying.value = false
-    }
-
+    
     fun startGame() {
         _isPlaying.value = true
     }

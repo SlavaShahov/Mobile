@@ -65,7 +65,6 @@ class LoginActivity : AppCompatActivity() {
         btnBackToLogin = findViewById(R.id.btnBackToLogin)
         btnConfirmRegister = findViewById(R.id.btnConfirmRegister)
 
-        // Registration fields
         etRegFullName = findViewById(R.id.etRegFullName)
         etBirthDate = findViewById(R.id.etBirthDate)
         btnSelectDate = findViewById(R.id.btnSelectDate)

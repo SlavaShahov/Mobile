@@ -1,4 +1,3 @@
-// game/engine/InsectFactory.kt
 package com.example.myapplication.game.engine
 
 import com.example.myapplication.domain.model.Insect
@@ -22,7 +21,6 @@ object InsectFactory {
         screenHeight: Int,
         bitmap: android.graphics.Bitmap? = null
     ): Insect {
-        // Используем переданный bitmap или берем из статических полей
         val actualBitmap = bitmap ?: when (type) {
             InsectType.REGULAR -> regularBugBitmap
             InsectType.FAST -> fastBugBitmap
@@ -117,7 +115,6 @@ object InsectFactory {
             isAntiAlias = true
         }
 
-        // Простая отрисовка жука (упрощенная версия)
         canvas.drawOval(15f, size * 0.2f, size - 15f, size * 0.8f, paint)
 
         return bitmap

@@ -39,11 +39,9 @@ class GyroscopeManager(
                     val rawTiltX = sensorEvent.values[0]
                     val rawTiltY = sensorEvent.values[1]
 
-                    // Инвертируем и настраиваем чувствительность
                     val tiltX = -rawTiltX * 2f
                     val tiltY = rawTiltY * 2f
 
-                    // Фильтруем небольшие колебания
                     val filterThreshold = 0.3f
                     val filteredTiltX = if (abs(tiltX) < filterThreshold) 0f else tiltX
                     val filteredTiltY = if (abs(tiltY) < filterThreshold) 0f else tiltY
@@ -56,9 +54,5 @@ class GyroscopeManager(
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
 
-    }
-
-    fun isGyroscopeAvailable(): Boolean {
-        return accelerometer != null
     }
 }

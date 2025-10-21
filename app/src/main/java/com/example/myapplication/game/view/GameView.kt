@@ -18,7 +18,6 @@ import com.example.myapplication.domain.model.InsectType
 import com.example.myapplication.game.engine.GameEngine
 import com.example.myapplication.game.sound.SoundManager
 import com.example.myapplication.ui.viewmodel.GameViewModel
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class GameView @JvmOverloads constructor(
@@ -73,7 +72,6 @@ class GameView @JvmOverloads constructor(
         this.viewModel = viewModel
         this.lifecycleOwner = lifecycleOwner
 
-        // Проверяем, нужно ли загружать ресурсы
         lifecycleOwner.lifecycleScope.launch {
             viewModel.areResourcesLoaded.collect { loaded ->
                 if (!loaded) {
@@ -120,10 +118,8 @@ class GameView @JvmOverloads constructor(
 
     private fun setupBitmaps() {
         try {
-            // Загружаем фон
             backgroundBitmap = loadBackgroundFromResource(R.drawable.game_background)
 
-            // Загружаем bitmap'ы для жуков
             regularBugBitmap = loadBitmapFromResource(R.drawable.bug_regular, 120)
             fastBugBitmap = loadBitmapFromResource(R.drawable.bug_fast, 110)
             rareBugBitmap = loadBitmapFromResource(R.drawable.bug_rare, 140)
@@ -131,7 +127,6 @@ class GameView @JvmOverloads constructor(
             penaltyBitmap = loadBitmapFromResource(R.drawable.penalty, 80)
             goldBugBitmap = loadBitmapFromResource(R.drawable.golden_bug, 100)
 
-            // Передаем bitmap'ы в InsectFactory
             regularBugBitmap?.let { InsectFactory.regularBugBitmap = it }
             fastBugBitmap?.let { InsectFactory.fastBugBitmap = it }
             rareBugBitmap?.let { InsectFactory.rareBugBitmap = it }
@@ -190,16 +185,14 @@ class GameView @JvmOverloads constructor(
 
     private fun createFallbackBitmaps() {
         Log.d(TAG, "Creating fallback bitmaps")
-        // InsectFactory сам создаст fallback bitmap'ы при необходимости
     }
 
-    // Остальные методы GameView остаются без изменений...
     fun setGameSettings(gameSpeed: Int, maxCockroaches: Int, bonusInterval: Int) {
         val settings = GameSettings(
             gameSpeed = gameSpeed,
             maxCockroaches = maxCockroaches,
             bonusInterval = bonusInterval,
-            roundDuration = 120 // временно фиксируем
+            roundDuration = 120
         )
         gameEngine.updateSettings(settings)
         Log.d("GameView", "Game settings set: speed=$gameSpeed")
@@ -281,7 +274,6 @@ class GameView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // Рисуем фон
         if (backgroundBitmap != null) {
             val scaledBackground = Bitmap.createScaledBitmap(backgroundBitmap!!, width, height, true)
             canvas.drawBitmap(scaledBackground, 0f, 0f, paint)
@@ -289,12 +281,10 @@ class GameView @JvmOverloads constructor(
             canvas.drawColor(Color.WHITE)
         }
 
-        // Рисуем всех насекомых
         gameEngine.getInsects().forEach { insect ->
             canvas.drawBitmap(insect.bitmap, insect.x, insect.y, paint)
         }
 
-        // Индикатор гироскоп-бонуса
         if (gameEngine.isTiltBonusActive()) {
             val timeLeft = gameEngine.getTiltBonusTimeLeft()
             drawTiltBonusIndicator(canvas, timeLeft)

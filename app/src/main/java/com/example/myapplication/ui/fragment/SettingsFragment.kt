@@ -117,7 +117,6 @@ private lateinit var sbRoundDuration: SeekBar
         }
 
         btnStartGame.setOnClickListener {
-            // Автосохранение настроек  перед запуском
             saveSettings()
             startGameWithSettings()
         }
