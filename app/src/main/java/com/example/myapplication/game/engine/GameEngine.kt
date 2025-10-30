@@ -45,11 +45,13 @@ class GameEngine(
         Log.d("GameEngine", "Settings updated: speed=${newSettings.gameSpeed}")
     }
 
+
     fun updateGoldRate(rate: Double) {
         this.currentGoldRate = rate
         this.goldBugPoints = ceil(rate / 100).toInt().coerceAtLeast(1)
         onGoldRateUpdated?.invoke(rate, goldBugPoints)
     }
+
 
     fun startGame() {
         isGameRunning = true
@@ -124,6 +126,7 @@ class GameEngine(
                 insect.speedY += currentTiltY * deltaTime * TILT_FORCE_MULTIPLIER
 
                 val currentSpeed = sqrt(insect.speedX * insect.speedX + insect.speedY * insect.speedY)
+
                 val maxSpeed = when (insect.type) {
                     InsectType.FAST -> 600f
                     else -> 500f
@@ -181,10 +184,12 @@ class GameEngine(
         insects.add(insect)
     }
 
+
     private fun spawnGoldBug() {
         val insect = InsectFactory.createGoldBug(screenWidth, screenHeight)
         insects.add(insect)
     }
+
 
     fun getInsects(): List<Insect> {
         return insects.toList()
@@ -201,6 +206,7 @@ class GameEngine(
         }
     }
 
+
     fun activateTiltBonus() {
         isTiltBonusActive = true
         tiltBonusEndTime = System.currentTimeMillis() + TILT_BONUS_DURATION
@@ -215,13 +221,13 @@ class GameEngine(
         onTiltBonusChanged?.invoke(false)
     }
 
+
     private fun shouldSpawnBonus(currentTime: Long): Boolean {
-        val adjustedInterval = (settings.bonusInterval * 1000L / (settings.gameSpeed * 0.5f + 0.5f)).toLong()
-        return currentTime - lastBonusTime > adjustedInterval
+        return currentTime - lastBonusTime > 15000L
     }
 
     private fun shouldSpawnGoldBug(currentTime: Long): Boolean {
-        return currentTime - lastGoldBugTime > 20000L // 20 секунд
+        return currentTime - lastGoldBugTime > 20000L
     }
 
     private fun removeOutOfBoundsInsects() {

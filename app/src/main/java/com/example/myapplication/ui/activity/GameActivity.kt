@@ -70,7 +70,7 @@ class GameActivity : AppCompatActivity() {
         setupGoldRateService()
         initViews()
 
-        // Связываем ViewModel с GameView
+        // Связали ViewModel с GameView
         gameView.setViewModel(viewModel, this)
 
         setupObservers()
@@ -212,11 +212,13 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
+
             gameView.setOnTiltBonusListener { isActive ->
                 if (isActive) {
                     showToast("Наклоняйте телефон - жуки летят в сторону наклона!")
                 }
             }
+
 
             gameView.setOnMissListener {
                 viewModel.subtractPoints(5)
@@ -341,7 +343,7 @@ class GameActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating gold rate", e)
                 runOnUiThread {
-                    viewModel.updateGoldRate(5000.0)
+                    viewModel.updateGoldRate(10500.0)
                 }
             }
         }

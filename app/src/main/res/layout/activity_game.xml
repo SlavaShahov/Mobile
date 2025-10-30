@@ -36,14 +36,14 @@
 
     </LinearLayout>
 
-    <!-- Игровое поле -->
+
     <com.example.myapplication.game.view.GameView
         android:id="@+id/gameView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- Нижняя панель с кнопками и виджетом -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -52,7 +52,7 @@
         android:padding="16dp"
         android:gravity="center_vertical">
 
-        <!-- Кнопка Меню -->
+
         <Button
             android:id="@+id/btnMenu"
             android:layout_width="wrap_content"
@@ -60,7 +60,7 @@
             android:layout_weight="1"
             android:text="Меню" />
 
-        <!-- Виджет курса золота МЕЖДУ кнопками -->
+
         <com.example.myapplication.game.view.GoldRateWidget
             android:id="@+id/goldRateWidget"
             android:layout_width="50dp"
@@ -69,7 +69,7 @@
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp" />
 
-        <!-- Кнопка Пауза -->
+
         <Button
             android:id="@+id/btnPause"
             android:layout_width="wrap_content"

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Мои Жуки</string>
+    <string name="widget_description">Виджет курса золота ЦБ</string>
 </resources>

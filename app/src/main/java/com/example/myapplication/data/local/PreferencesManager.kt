@@ -40,7 +40,6 @@ class PreferencesManager(context: Context) : GameRepository {
         userDao.insertUser(user)
         Log.d("PreferencesManager", "User inserted into database")
 
-        // Получаем ID после вставки через Flow
         try {
             val insertedUser = userDao.getUserByName(player.fullName).first()
             currentUserId = insertedUser.id

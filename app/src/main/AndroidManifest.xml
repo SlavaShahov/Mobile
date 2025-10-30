@@ -47,6 +47,19 @@
             android:exported="false"
             android:screenOrientation="fullUser" />
 
+        <receiver
+            android:name=".widget.GoldRateAppWidget"
+            android:exported="true"
+            android:label="Курс золота">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gold_rate_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

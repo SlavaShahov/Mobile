@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Основной золотой цвет -->
+    <item>
+        <shape android:shape="oval">
+            <size android:width="110dp" android:height="110dp"/>
+            <solid android:color="#FFD700" />
+        </shape>
+    </item>
+
+    <!-- Светлая тень снизу для объема -->
+    <item
+        android:left="15dp"
+        android:top="65dp"
+        android:right="15dp"
+        android:bottom="15dp">
+        <shape android:shape="oval">
+            <gradient
+                android:startColor="#00FFA500"
+                android:endColor="#60DAA520"
+                android:angle="90"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Главный большой блик (как в прямоугольной версии) -->
+    <item
+        android:left="15dp"
+        android:top="15dp"
+        android:right="15dp"
+        android:bottom="45dp">
+        <shape android:shape="oval">
+            <gradient
+                android:startColor="#C0FFFFFF"
+                android:centerColor="#60FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:gradientRadius="70"
+                android:type="radial"
+                android:centerX="0.5"
+                android:centerY="0.2" />
+        </shape>
+    </item>
+
+    <!-- Яркое пятно блика -->
+    <item
+        android:left="35dp"
+        android:top="25dp"
+        android:right="35dp"
+        android:bottom="55dp">
+        <shape android:shape="oval">
+            <gradient
+                android:startColor="#E0FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:gradientRadius="50"
+                android:type="radial"
+                android:centerX="0.5"
+                android:centerY="0.3" />
+        </shape>
+    </item>
+
+</layer-list>

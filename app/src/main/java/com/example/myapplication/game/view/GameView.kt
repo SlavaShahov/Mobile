@@ -291,6 +291,7 @@ class GameView @JvmOverloads constructor(
         }
     }
 
+
     private fun drawTiltBonusIndicator(canvas: Canvas, timeLeft: Float) {
         val indicatorPaint = Paint().apply {
             color = Color.argb(180, 0, 200, 255)
@@ -325,6 +326,7 @@ class GameView @JvmOverloads constructor(
         canvas.drawRect(0f, indicatorHeight - 10f, progressWidth, indicatorHeight, progressPaint)
     }
 
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN && isGameRunning) {
             val x = event.x
@@ -341,6 +343,7 @@ class GameView @JvmOverloads constructor(
         }
         return true
     }
+
 
     private fun handleInsectClick(insect: Insect) {
         when (insect.type) {
@@ -368,6 +371,7 @@ class GameView @JvmOverloads constructor(
             }
         }
     }
+
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
